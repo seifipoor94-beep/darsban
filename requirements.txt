@@ -1,0 +1,10 @@
+streamlit
+pandas
+matplotlib
+fpdf
+seaborn
+Pillow
+openpyxl
+plotly
+requests
+dropbox
