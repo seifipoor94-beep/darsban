@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 # اتصال به دیتابیس
 conn = sqlite3.connect("school.db", check_same_thread=False)
 cursor = conn.cursor()
+# افزودن کاربر اولیه (فقط یک‌بار اجرا کن)
+cursor.execute("""
+    INSERT OR IGNORE INTO users (نام_کاربر, رمز_عبور, نقش, مدرسه, وضعیت, تاریخ_انقضا)
+    VALUES (?, ?, ?, ?, ?, ?)
+""", ("admin", "1234", "مدیر سامانه", "مدرسه نمونه", "فعال", "2099/12/31"))
+conn.commit()
 
 # ساخت جدول‌ها در صورت نیاز
 def init_database():
@@ -421,3 +427,4 @@ def generate_report(student_name):
         file_name=f"report_{student_name}.pdf",
         mime="application/pdf"
     )
+
