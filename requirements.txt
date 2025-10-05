@@ -8,3 +8,5 @@ openpyxl
 plotly
 requests
 dropbox
+python-bidi
+arabic_reshaper
