@@ -371,19 +371,22 @@ if not st.session_state.logged_in:
     login_btn = st.button("ورود")
 
     if login_btn:
-        # بررسی کاربران
+        # بررسی کاربران رسمی
         user_df = pd.read_sql_query("SELECT * FROM users", conn)
         user_row = user_df[
             (user_df["نام_کاربر"] == username) &
             (user_df["رمز_عبور"] == password)
         ]
 
-        # بررسی دانش‌آموزان
+        # بررسی دانش‌آموزان با بررسی وجود ستون
         student_df = pd.read_sql_query("SELECT * FROM students", conn)
-        student_row = student_df[
-            (student_df["نام_کاربری"] == username) &
-            (student_df["رمز_دانش‌آموز"] == password)
-        ]
+        if "نام_کاربری" in student_df.columns:
+            student_row = student_df[
+                (student_df["نام_کاربری"] == username) &
+                (student_df["رمز_دانش‌آموز"] == password)
+            ]
+        else:
+            student_row = pd.DataFrame()  # خالی چون ستون وجود ندارد
 
         if not user_row.empty:
             roles = user_row.iloc[0]["نقش"].split(",")
@@ -436,3 +439,4 @@ if st.session_state.logged_in:
         st.session_state.role = ""
         st.session_state.school = ""
         st.experimental_rerun()
+
