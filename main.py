@@ -342,6 +342,66 @@ if login_btn:
 from fpdf import FPDF
 import base64
 
+def generate_report(student_name):
+    st.subheader("📄 کارنامه دانش‌آموز")
+
+    student_info = pd.read_sql_query(
+        "SELECT * FROM students WHERE نام_دانش‌آموز = ?", conn, params=(student_name,)
+    ).iloc[0]
+    teacher = student_info["آموزگار"]
+    student_class = student_info["کلاس"]
+
+    school = pd.read_sql_query(
+        "SELECT مدرسه FROM users WHERE نام_کاربر = ?", conn, params=(teacher,)
+    ).iloc[0]["مدرسه"]
+
+    st.markdown(f"""
+    🏫 مدرسه: {school}  
+    👧 دانش‌آموز: {student_name}  
+    📚 کلاس: {student_class}  
+    📅 تاریخ صدور: {datetime.today().strftime("%Y/%m/%d")}
+    """)
+
+    df = pd.read_sql_query("""
+        SELECT درس, AVG(نمره) as میانگین_دانش‌آموز
+        FROM scores
+        WHERE نام_دانش‌آموز = ?
+        GROUP BY درس
+    """, conn, params=(student_name,))
+
+    rows = []
+    for _, row in df.iterrows():
+        lesson = row["درس"]
+        student_avg = row["میانگین_دانش‌آموز"]
+
+        class_avg = pd.read_sql_query("""
+            SELECT AVG(نمره) as میانگین_کلاس
+            FROM scores
+            WHERE آموزگار = ? AND درس = ?
+        """, conn, params=(teacher, lesson)).iloc[0]["میانگین_کلاس"]
+
+        status_num = وضعیت_نمره‌ای(student_avg, class_avg)
+        status_text = متن_وضعیت(status_num)
+
+        rows.append({
+            "درس": lesson,
+            "میانگین دانش‌آموز": round(student_avg, 2),
+            "میانگین کلاس": round(class_avg, 2),
+            "وضعیت": status_text
+        })
+
+    st.table(pd.DataFrame(rows))
+
+    total_avg = df["میانگین_دانش‌آموز"].mean()
+    st.markdown(f"📊 میانگین کل: **{round(total_avg, 2)}**")
+
+    if total_avg >= 18:
+        st.success("🌟 آفرین! پیشرفتت عالی بوده.")
+    elif total_avg >= 15:
+        st.info("👍 عملکردت خوبه، ادامه بده!")
+    else:
+        st.warning("💡 تلاش بیشتری لازم داری. من بهت ایمان دارم!")
+
     # ساخت فایل PDF
     pdf = FPDF()
     pdf.add_page()
@@ -361,6 +421,3 @@ import base64
         file_name=f"report_{student_name}.pdf",
         mime="application/pdf"
     )
-
-    )
-
