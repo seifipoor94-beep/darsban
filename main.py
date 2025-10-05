@@ -197,37 +197,57 @@ def generate_report(student_name):
 def show_superadmin_panel():
     st.header("🛠 پنل مدیر سامانه")
 
+    # ثبت کاربر جدید با نقش
     with st.form("register_teacher_form"):
-        st.subheader("➕ ثبت آموزگار جدید")
-        username = st.text_input("نام کاربری آموزگار")
+        st.subheader("➕ ثبت کاربر جدید")
+        username = st.text_input("نام کاربری")
         password = st.text_input("رمز عبور", type="password")
         school = st.text_input("نام مدرسه")
+        role = st.selectbox("نقش کاربر", ["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"])
         expiry_date = st.date_input("تاریخ انقضا")
-        submitted = st.form_submit_button("ثبت آموزگار")
+        submitted = st.form_submit_button("ثبت کاربر")
         if submitted:
             expiry_str = expiry_date.strftime("%Y/%m/%d")
             cursor.execute("""
                 INSERT INTO users (نام_کاربر, رمز_عبور, نقش, مدرسه, وضعیت, تاریخ_انقضا)
-                VALUES (?, ?, 'آموزگار', ?, 'فعال', ?)
-            """, (username, password, school, expiry_str))
+                VALUES (?, ?, ?, ?, 'فعال', ?)
+            """, (username, password, role, school, expiry_str))
             conn.commit()
-            st.success(f"✅ آموزگار {username} ثبت شد.")
+            st.success(f"✅ کاربر {username} با نقش {role} ثبت شد.")
 
-    st.subheader("👩‍🏫 لیست آموزگارها")
-    df = pd.read_sql_query("SELECT * FROM users WHERE نقش LIKE '%آموزگار%'", conn)
+    # لیست کاربران قابل ویرایش
+    st.subheader("🧑‍🏫 مدیریت کاربران ثبت‌شده")
+    df = pd.read_sql_query("SELECT * FROM users", conn)
     st.dataframe(df)
 
     if not df.empty:
-        selected_teacher = st.selectbox("انتخاب آموزگار برای مدیریت", df["نام_کاربر"])
-        new_status = st.radio("وضعیت جدید", ["فعال", "مسدود"])
-        new_expiry = st.date_input("تاریخ جدید انقضا")
-        if st.button("ثبت تغییرات"):
-            expiry_str = new_expiry.strftime("%Y/%m/%d")
-            cursor.execute("UPDATE users SET وضعیت = ?, تاریخ_انقضا = ? WHERE نام_کاربر = ?",
-                           (new_status, expiry_str, selected_teacher))
-            conn.commit()
-            st.success("✅ تغییرات ثبت شد.")
+        selected_user = st.selectbox("انتخاب کاربر برای ویرایش یا حذف", df["نام_کاربر"])
+        user_row = df[df["نام_کاربر"] == selected_user].iloc[0]
 
+        new_password = st.text_input("رمز جدید", value=user_row["رمز_عبور"])
+        new_role = st.selectbox("نقش جدید", ["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"], index=["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"].index(user_row["نقش"]))
+        new_school = st.text_input("مدرسه جدید", value=user_row["مدرسه"])
+        new_status = st.radio("وضعیت جدید", ["فعال", "مسدود"], index=["فعال", "مسدود"].index(user_row["وضعیت"]))
+        new_expiry = st.date_input("تاریخ جدید انقضا", value=datetime.strptime(user_row["تاریخ_انقضا"], "%Y/%m/%d"))
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💾 ثبت تغییرات"):
+                expiry_str = new_expiry.strftime("%Y/%m/%d")
+                cursor.execute("""
+                    UPDATE users
+                    SET رمز_عبور = ?, نقش = ?, مدرسه = ?, وضعیت = ?, تاریخ_انقضا = ?
+                    WHERE نام_کاربر = ?
+                """, (new_password, new_role, new_school, new_status, expiry_str, selected_user))
+                conn.commit()
+                st.success("✅ اطلاعات کاربر با موفقیت به‌روزرسانی شد.")
+        with col2:
+            if st.button("🗑 حذف کاربر"):
+                cursor.execute("DELETE FROM users WHERE نام_کاربر = ?", (selected_user,))
+                conn.commit()
+                st.warning(f"❌ کاربر {selected_user} حذف شد.")
+
+    # تغییر رمز مدیر سامانه
     st.subheader("🔐 تغییر رمز مدیر سامانه")
     current_password = st.text_input("رمز فعلی", type="password", key="admin_current")
     new_password = st.text_input("رمز جدید", type="password", key="admin_new")
@@ -250,6 +270,54 @@ def show_teacher_panel(username):
     st.header("🎓 پنل آموزگار")
     st.write(f"خوش آمدید، {username}!")
 
+    # ثبت دانش‌آموز جدید
+    with st.form("register_student_form"):
+        st.subheader("➕ ثبت دانش‌آموز جدید")
+        student_name = st.text_input("نام دانش‌آموز")
+        student_class = st.text_input("کلاس")
+        student_password = st.text_input("رمز ورود دانش‌آموز", type="password")
+        register_date = st.date_input("تاریخ ثبت")
+        submitted = st.form_submit_button("ثبت دانش‌آموز")
+        if submitted:
+            register_str = register_date.strftime("%Y/%m/%d")
+            cursor.execute("""
+                INSERT INTO students (آموزگار, نام_دانش‌آموز, رمز_دانش‌آموز, کلاس, تاریخ_ثبت)
+                VALUES (?, ?, ?, ?, ?)
+            """, (username, student_name, student_password, student_class, register_str))
+            conn.commit()
+            st.success(f"✅ دانش‌آموز {student_name} ثبت شد.")
+
+    # ثبت نمرات جدید
+    st.subheader("📝 ثبت نمرات جدید")
+    lesson = st.text_input("نام درس")
+    score_date = st.date_input("تاریخ ثبت نمره")
+    score_label = st.text_input("شماره یا عنوان نمره (مثلاً نمره اول، آزمون مهر)")
+
+    student_df = pd.read_sql_query("SELECT * FROM students WHERE آموزگار = ?", conn, params=(username,))
+    if student_df.empty:
+        st.info("هیچ دانش‌آموزی ثبت نشده است.")
+        return
+
+    st.markdown("👧 لیست دانش‌آموزان برای ثبت نمره:")
+    score_inputs = {}
+    for i, row in student_df.iterrows():
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.write(f"{row['نام_دانش‌آموز']} - کلاس {row['کلاس']}")
+        with col2:
+            score_inputs[row["نام_دانش‌آموز"]] = st.number_input(
+                f"نمره {row['نام_دانش‌آموز']}", min_value=0, max_value=20, step=1, key=f"score_{i}"
+            )
+
+    if st.button("ثبت همه نمرات"):
+        score_str = score_date.strftime("%Y/%m/%d")
+        for student_name, score in score_inputs.items():
+            cursor.execute("""
+                INSERT INTO scores (آموزگار, نام_دانش‌آموز, درس, نمره_شماره, نمره, تاریخ)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, student_name, lesson, score_label, score, score_str))
+        conn.commit()
+        st.success("✅ همه نمرات با موفقیت ثبت شدند.")
 def show_student_panel(username):
     st.header("👧 پنل دانش‌آموز")
     st.write(f"سلام {username} عزیز!")
@@ -260,10 +328,12 @@ def show_student_panel(username):
 def show_assistant_panel(school):
     st.header("📋 پنل معاون")
     st.write(f"مدرسه: {school}")
+    st.info("🔧 این بخش در حال توسعه است.")
 
 def show_school_admin_panel(school):
     st.header("🏫 پنل مدیر مدرسه")
     st.write(f"مدرسه: {school}")
+    st.info("🔧 این بخش در حال توسعه است.")
 
 # فرم ورود
 if not st.session_state.logged_in:
@@ -314,8 +384,8 @@ if st.session_state.logged_in:
         show_teacher_panel(username)
     elif role == "دانش‌آموز":
         show_student_panel(username)
-# دکمهٔ خروج از سامانه
-if st.session_state.logged_in:
+
+    # دکمهٔ خروج
     if st.button("🚪 خروج از سامانه"):
         st.session_state.logged_in = False
         st.session_state.username = ""
