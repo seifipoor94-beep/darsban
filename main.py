@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 import matplotlib.pyplot as plt
 from fpdf import FPDF
+import jdatetime
 
 # اتصال به دیتابیس
 conn = sqlite3.connect("school.db", check_same_thread=False)
@@ -25,6 +26,7 @@ def init_database():
         CREATE TABLE IF NOT EXISTS students (
             آموزگار TEXT,
             نام_دانش‌آموز TEXT,
+            نام_کاربری TEXT,
             رمز_دانش‌آموز TEXT,
             کلاس TEXT,
             تاریخ_ثبت TEXT
@@ -128,11 +130,13 @@ def generate_report(student_name):
         "SELECT مدرسه FROM users WHERE نام_کاربر = ?", conn, params=(teacher,)
     ).iloc[0]["مدرسه"]
 
+    today_shamsi = jdatetime.date.today().strftime("%Y/%m/%d")
+
     st.markdown(f"""
     🏫 مدرسه: {school}  
     👧 دانش‌آموز: {student_name}  
     📚 کلاس: {student_class}  
-    📅 تاریخ صدور: {datetime.today().strftime("%Y/%m/%d")}
+    📅 تاریخ صدور: {today_shamsi}
     """)
 
     df = pd.read_sql_query("""
@@ -180,7 +184,7 @@ def generate_report(student_name):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=f"کارنامه دانش‌آموز: {student_name}", ln=True, align="C")
-    pdf.cell(200, 10, txt=f"تاریخ صدور: {datetime.today().strftime('%Y/%m/%d')}", ln=True, align="C")
+    pdf.cell(200, 10, txt=f"تاریخ صدور: {today_shamsi}", ln=True, align="C")
     pdf.ln(10)
 
     for row in rows:
@@ -274,24 +278,24 @@ def show_teacher_panel(username):
     with st.form("register_student_form"):
         st.subheader("➕ ثبت دانش‌آموز جدید")
         student_name = st.text_input("نام دانش‌آموز")
+        student_username = st.text_input("نام کاربری دانش‌آموز")
         student_class = st.text_input("کلاس")
         student_password = st.text_input("رمز ورود دانش‌آموز", type="password")
-        register_date = st.date_input("تاریخ ثبت")
+        register_date = jdatetime.date.today().strftime("%Y/%m/%d")
         submitted = st.form_submit_button("ثبت دانش‌آموز")
         if submitted:
-            register_str = register_date.strftime("%Y/%m/%d")
             cursor.execute("""
-                INSERT INTO students (آموزگار, نام_دانش‌آموز, رمز_دانش‌آموز, کلاس, تاریخ_ثبت)
-                VALUES (?, ?, ?, ?, ?)
-            """, (username, student_name, student_password, student_class, register_str))
+                INSERT INTO students (آموزگار, نام_دانش‌آموز, نام_کاربری, رمز_دانش‌آموز, کلاس, تاریخ_ثبت)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, student_name, student_username, student_password, student_class, register_date))
             conn.commit()
-            st.success(f"✅ دانش‌آموز {student_name} ثبت شد.")
+            st.success(f"✅ دانش‌آموز {student_name} با نام کاربری {student_username} ثبت شد.")
 
     # ثبت نمرات جدید
     st.subheader("📝 ثبت نمرات جدید")
     lesson = st.text_input("نام درس")
-    score_date = st.date_input("تاریخ ثبت نمره")
     score_label = st.text_input("شماره یا عنوان نمره (مثلاً نمره اول، آزمون مهر)")
+    score_date = jdatetime.date.today().strftime("%Y/%m/%d")
 
     student_df = pd.read_sql_query("SELECT * FROM students WHERE آموزگار = ?", conn, params=(username,))
     if student_df.empty:
@@ -310,20 +314,44 @@ def show_teacher_panel(username):
             )
 
     if st.button("ثبت همه نمرات"):
-        score_str = score_date.strftime("%Y/%m/%d")
         for student_name, score in score_inputs.items():
             cursor.execute("""
                 INSERT INTO scores (آموزگار, نام_دانش‌آموز, درس, نمره_شماره, نمره, تاریخ)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (username, student_name, lesson, score_label, score, score_str))
+            """, (username, student_name, lesson, score_label, score, score_date))
         conn.commit()
         st.success("✅ همه نمرات با موفقیت ثبت شدند.")
+
+    # گزارش عملکرد کلاس
+    st.subheader("📊 گزارش عملکرد کلاس")
+    report_df = pd.read_sql_query("""
+        SELECT نام_دانش‌آموز, درس, AVG(نمره) as میانگین
+        FROM scores
+        WHERE آموزگار = ?
+        GROUP BY نام_دانش‌آموز, درس
+    """, conn, params=(username,))
+
+    if report_df.empty:
+        st.info("هنوز نمره‌ای ثبت نشده است.")
+    else:
+        st.dataframe(report_df)
+        avg_df = report_df.groupby("نام_دانش‌آموز")["میانگین"].mean().reset_index()
+        st.bar_chart(avg_df.set_index("نام_دانش‌آموز"))
 def show_student_panel(username):
     st.header("👧 پنل دانش‌آموز")
     st.write(f"سلام {username} عزیز!")
-    generate_report(username)
-    draw_line_chart(username)
-    draw_pie_chart(username)
+
+    student_info = pd.read_sql_query(
+        "SELECT * FROM students WHERE نام_کاربری = ?", conn, params=(username,)
+    )
+    if student_info.empty:
+        st.error("⛔️ اطلاعات دانش‌آموز یافت نشد.")
+        return
+
+    student_name = student_info.iloc[0]["نام_دانش‌آموز"]
+    generate_report(student_name)
+    draw_line_chart(student_name)
+    draw_pie_chart(student_name)
 
 def show_assistant_panel(school):
     st.header("📋 پنل معاون")
@@ -343,15 +371,21 @@ if not st.session_state.logged_in:
     login_btn = st.button("ورود")
 
     if login_btn:
+        # بررسی کاربران
         user_df = pd.read_sql_query("SELECT * FROM users", conn)
         user_row = user_df[
             (user_df["نام_کاربر"] == username) &
             (user_df["رمز_عبور"] == password)
         ]
 
-        if user_row.empty:
-            st.error("❌ نام کاربری یا رمز اشتباه است.")
-        else:
+        # بررسی دانش‌آموزان
+        student_df = pd.read_sql_query("SELECT * FROM students", conn)
+        student_row = student_df[
+            (student_df["نام_کاربری"] == username) &
+            (student_df["رمز_دانش‌آموز"] == password)
+        ]
+
+        if not user_row.empty:
             roles = user_row.iloc[0]["نقش"].split(",")
             status = user_row.iloc[0]["وضعیت"]
             expiry = user_row.iloc[0]["تاریخ_انقضا"]
@@ -367,6 +401,16 @@ if not st.session_state.logged_in:
                 st.session_state.role = roles[0] if len(roles) == 1 else st.radio("🎭 انتخاب نقش:", roles)
                 st.session_state.school = school
                 st.success("✅ ورود موفقیت‌آمیز")
+
+        elif not student_row.empty:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.session_state.role = "دانش‌آموز"
+            st.session_state.school = ""
+            st.success("✅ ورود دانش‌آموز موفقیت‌آمیز")
+
+        else:
+            st.error("❌ نام کاربری یا رمز اشتباه است.")
 
 # نمایش پنل‌ها
 if st.session_state.logged_in:
