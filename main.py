@@ -354,7 +354,6 @@ import base64
         pdf.cell(200, 10, txt=f"{row['درس']}: میانگین دانش‌آموز {row['میانگین دانش‌آموز']}، میانگین کلاس {row['میانگین کلاس']}، وضعیت: {row['وضعیت']}", ln=True)
 
     pdf_output = pdf.output(dest="S").encode("latin1")
-    b64_pdf = base64.b64encode(pdf_output).decode()
 
     st.download_button(
         label="📥 دانلود کارنامه PDF",
@@ -362,3 +361,6 @@ import base64
         file_name=f"report_{student_name}.pdf",
         mime="application/pdf"
     )
+
+    )
+
