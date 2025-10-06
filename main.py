@@ -432,21 +432,21 @@ def show_score_edit_panel(username):
             cursor.execute("UPDATE scores SET نمره = ? WHERE rowid = ?", (new_score, selected_score["rowid"]))
             conn.commit()
             st.success("نمره با موفقیت ویرایش شد.")
+with col2:  # فرم ورود
+    if not st.session_state.logged_in:
+        st.subheader("🔐 ورود به سامانه")
+        username = st.text_input("نام کاربری")
+        password = st.text_input("رمز عبور", type="password")
+        login_btn = st.button("ورود")
 
-    with col2:# فرم ورود
-if not st.session_state.logged_in:
-    st.subheader("🔐 ورود به سامانه")
-    username = st.text_input("نام کاربری")
-    password = st.text_input("رمز عبور", type="password")
-    login_btn = st.button("ورود")
+        if login_btn:
+            # بررسی کاربران رسمی
+            user_df = pd.read_sql_query("SELECT * FROM users", conn)
+            user_row = user_df[
+                (user_df["نام_کاربر"] == username) &
+                (user_df["رمز_عبور"] == password)
+            ]
 
-    if login_btn:
-        # بررسی کاربران رسمی
-        user_df = pd.read_sql_query("SELECT * FROM users", conn)
-        user_row = user_df[
-            (user_df["نام_کاربر"] == username) &
-            (user_df["رمز_عبور"] == password)
-        ]
 
         # بررسی دانش‌آموزان
         student_df = pd.read_sql_query("SELECT * FROM students", conn)
@@ -513,3 +513,4 @@ if st.session_state.logged_in:
             cursor.execute("DELETE FROM scores WHERE rowid = ?", (selected_score["rowid"],))
             conn.commit()
             st.warning("نمره حذف شد.")
+
