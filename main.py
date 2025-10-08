@@ -514,13 +514,11 @@ if st.session_state.logged_in:
         show_teacher_panel(username)
     elif role == "دانش‌آموز":
         show_student_panel(username)
-
-  
-
         if st.button("🗑 حذف نمره"):
             cursor.execute("DELETE FROM scores WHERE rowid = ?", (selected_score["rowid"],))
             conn.commit()
             st.warning("نمره حذف شد.")
+
 
 
 
