@@ -432,58 +432,65 @@ def show_score_edit_panel(username):
             cursor.execute("UPDATE scores SET نمره = ? WHERE rowid = ?", (new_score, selected_score["rowid"]))
             conn.commit()
             st.success("نمره با موفقیت ویرایش شد.")
-with col2:  # فرم ورود
-   if not st.session_state.logged_in:
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
     st.subheader("🔐 ورود به سامانه")
 
-    username = st.text_input("نام کاربری")
-    password = st.text_input("رمز عبور", type="password")
-    login_btn = st.button("ورود")
+    # تعریف ستون‌ها
+    col1, col2 = st.columns([1, 2])
 
-    if login_btn:
-        # بررسی کاربران رسمی
-        user_df = pd.read_sql_query("SELECT * FROM users", conn)
-        user_row = user_df[
-            (user_df["نام_کاربر"] == username) &
-            (user_df["رمز_عبور"] == password)
-        ]
+    with col2:
+        username = st.text_input("نام کاربری")
+        password = st.text_input("رمز عبور", type="password")
+        login_btn = st.button("ورود")
 
-        # بررسی دانش‌آموزان
-        student_df = pd.read_sql_query("SELECT * FROM students", conn)
-        if "نام_کاربری" in student_df.columns:
-            student_row = student_df[
-                (student_df["نام_کاربری"] == username) &
-                (student_df["رمز_دانش‌آموز"] == password)
+        if login_btn:
+            # بررسی کاربران رسمی
+            user_df = pd.read_sql_query("SELECT * FROM users", conn)
+            user_row = user_df[
+                (user_df["نام_کاربر"] == username) &
+                (user_df["رمز_عبور"] == password)
             ]
-        else:
-            student_row = pd.DataFrame()
 
-        if not user_row.empty:
-            roles = user_row.iloc[0]["نقش"].split(",")
-            status = user_row.iloc[0]["وضعیت"]
-            expiry = user_row.iloc[0]["تاریخ_انقضا"]
-            school = user_row.iloc[0]["مدرسه"]
-
-            if status != "فعال":
-                st.error("⛔️ حساب شما مسدود شده است.")
-            elif expiry and datetime.today().date() > datetime.strptime(expiry, "%Y/%m/%d").date():
-                st.error("⛔️ حساب شما منقضی شده است.")
+            # بررسی دانش‌آموزان
+            student_df = pd.read_sql_query("SELECT * FROM students", conn)
+            if "نام_کاربری" in student_df.columns:
+                student_row = student_df[
+                    (student_df["نام_کاربری"] == username) &
+                    (student_df["رمز_دانش‌آموز"] == password)
+                ]
             else:
+                student_row = pd.DataFrame()
+
+            if not user_row.empty:
+                roles = user_row.iloc[0]["نقش"].split(",")
+                status = user_row.iloc[0]["وضعیت"]
+                expiry = user_row.iloc[0]["تاریخ_انقضا"]
+                school = user_row.iloc[0]["مدرسه"]
+
+                if status != "فعال":
+                    st.error("⛔️ حساب شما مسدود شده است.")
+                elif expiry and datetime.today().date() > datetime.strptime(expiry, "%Y/%m/%d").date():
+                    st.error("⛔️ حساب شما منقضی شده است.")
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    st.session_state.role = roles[0] if len(roles) == 1 else st.radio("🎭 انتخاب نقش:", roles)
+                    st.session_state.school = school
+                    st.success("✅ ورود موفقیت‌آمیز")
+
+            elif not student_row.empty:
                 st.session_state.logged_in = True
                 st.session_state.username = username
-                st.session_state.role = roles[0] if len(roles) == 1 else st.radio("🎭 انتخاب نقش:", roles)
-                st.session_state.school = school
-                st.success("✅ ورود موفقیت‌آمیز")
+                st.session_state.role = "دانش‌آموز"
+                st.session_state.school = ""
+                st.success("✅ ورود دانش‌آموز موفقیت‌آمیز")
 
-        elif not student_row.empty:
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.session_state.role = "دانش‌آموز"
-            st.session_state.school = ""
-            st.success("✅ ورود دانش‌آموز موفقیت‌آمیز")
+            else:
+                st.error("❌ نام کاربری یا رمز اشتباه است.")
 
-        else:
-            st.error("❌ نام کاربری یا رمز اشتباه است.")
 
 # نمایش پنل‌ها
 if st.session_state.logged_in:
@@ -514,5 +521,6 @@ if st.session_state.logged_in:
             cursor.execute("DELETE FROM scores WHERE rowid = ?", (selected_score["rowid"],))
             conn.commit()
             st.warning("نمره حذف شد.")
+
 
 
