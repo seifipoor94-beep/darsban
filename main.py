@@ -437,12 +437,13 @@ if "logged_in" not in st.session_state:
 
 if not st.session_state.logged_in:
     st.subheader("🔐 ورود به سامانه")
+    
     if st.button("🚪 خروج"):
-    st.session_state.logged_in = False
-    st.session_state.username = ""
-    st.session_state.role = ""
-    st.session_state.school = ""
-    st.experimental_rerun()
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.session_state.role = ""
+        st.session_state.school = ""
+        st.experimental_rerun()
 
     # تعریف ستون‌ها
     col1, col2 = st.columns([1, 2])
@@ -518,6 +519,7 @@ if st.session_state.logged_in:
             cursor.execute("DELETE FROM scores WHERE rowid = ?", (selected_score["rowid"],))
             conn.commit()
             st.warning("نمره حذف شد.")
+
 
 
 
