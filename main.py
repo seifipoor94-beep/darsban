@@ -569,15 +569,37 @@ def show_class_statistics_panel(username):
         st.dataframe(df)
 
     # نمودار دایره‌ای
-    if selected_lesson == "همه دروس":
-        draw_class_pie_chart(username, selected_lesson=None, title="توزیع وضعیت (همه دروس)")
+  # ✅ تعریف تابع وضعیت نمره‌ای (اگر قبلاً تعریف نشده)
+def وضعیت_نمره‌ای(student_avg, class_avg):
+    if student_avg < class_avg - 2:
+        return 1  # نیاز به تلاش بیشتر
+    elif student_avg < class_avg:
+        return 2  # قابل قبول
+    elif student_avg < class_avg + 2:
+        return 3  # خوب
     else:
-        draw_class_pie_chart(username, selected_lesson=selected_lesson, title=f"توزیع وضعیت درس {selected_lesson}")
+        return 4  # خیلی خوب
 
-    # امکان نمایش نمودار خطی میانگین کلاس برای درس انتخابی
-    if selected_lesson != "همه دروس":
-        if st.button("نمایش نمودار روند میانگین کلاس برای این درس"):
-            show_class_line_chart(username, selected_lesson)
+# ✅ تعریف متن وضعیت (اختیاری، برای نمایش در جدول یا PDF)
+def متن_وضعیت(status_code):
+    return {
+        1: "نیاز به تلاش بیشتر",
+        2: "قابل قبول",
+        3: "خوب",
+        4: "خیلی خوب"
+    }.get(status_code, "نامشخص")
+
+# ✅ نمایش نمودار دایره‌ای وضعیت کلاس
+if selected_lesson == "همه دروس":
+    draw_class_pie_chart(username, selected_lesson=None, title="توزیع وضعیت (همه دروس)")
+else:
+    draw_class_pie_chart(username, selected_lesson=selected_lesson, title=f"توزیع وضعیت درس {selected_lesson}")
+
+# ✅ نمایش نمودار خطی میانگین کلاس برای درس انتخابی
+if selected_lesson != "همه دروس":
+    if st.button("نمایش نمودار روند میانگین کلاس برای این درس"):
+        show_class_line_chart(username, selected_lesson)
+
 
 # رتبه‌بندی کلی و هر درس (برای آموزگار/مدیر/معاون)
 def show_class_ranking_panel(username_or_school_admin, role="آموزگار"):
@@ -932,5 +954,6 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
