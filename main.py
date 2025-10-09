@@ -742,7 +742,8 @@ def show_superadmin_panel():
                     execute_sql("INSERT INTO users (نام_کاربر, نام_کامل, رمز_عبور, نقش, مدرسه) VALUES (?, ?, ?, ?, ?)",
                                 (username, full_name, password, role, school))
                     st.success("✅ کاربر جدید با موفقیت ثبت شد.")
-                    st.experimental_rerun()
+                    st.rerun()
+
                 except Exception as e:
                     st.error("خطا در ثبت کاربر:")
                     st.text(str(e))
@@ -762,7 +763,8 @@ def show_superadmin_panel():
             try:
                 execute_sql("DELETE FROM users WHERE نام_کاربر = ?", (selected,))
                 st.warning(f"❌ کاربر {selected} حذف شد.")
-                st.experimental_rerun()
+                st.rerun()
+
             except Exception as e:
                 st.error("خطا در حذف کاربر:")
                 st.text(str(e))
@@ -930,4 +932,5 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
