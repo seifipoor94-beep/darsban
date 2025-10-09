@@ -739,7 +739,7 @@ def show_superadmin_panel():
                 st.error("نام کاربری و رمز عبور الزامی است.")
             else:
                 try:
-                    execute_sql("INSERT INTO users (نام_کاربر, نام_کامل, رمز, نقش, مدرسه) VALUES (?, ?, ?, ?, ?)",
+                    execute_sql("INSERT INTO users (نام_کاربر, نام_کامل, رمز_عبور, نقش, مدرسه) VALUES (?, ?, ?, ?, ?)",
                                 (username, full_name, password, role, school))
                     st.success("✅ کاربر جدید با موفقیت ثبت شد.")
                     st.experimental_rerun()
@@ -930,3 +930,4 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
