@@ -885,60 +885,48 @@ def show_student_panel(username):
 
 
 # ------------------------------
-# صفحه ورود اصلی
-# ------------------------------
 # ------------------------------
 # صفحه ورود اصلی
 # ------------------------------
 
-# مقداردهی اولیه وضعیت ورود (برای جلوگیری از پرت شدن بعد از ثبت یا ورود)
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "username" not in st.session_state:
-    st.session_state.username = None
-if "role" not in st.session_state:
-    st.session_state.role = None
+if not st.session_state.logged_in:
+    st.title("📘 سامانه مدیریت نمرات مدارس")
+    st.markdown("به سامانه خوش آمدید. لطفاً وارد شوید:")
 
-st.title("📘 سامانه مدیریت نمرات مدارس")
-st.markdown("به سامانه خوش آمدید. لطفاً وارد شوید:")
+    username = st.text_input("نام کاربری", key="login_user")
+    password = st.text_input("رمز عبور", type="password", key="login_pass")
 
-username = st.text_input("نام کاربری", key="login_user")
-password = st.text_input("رمز عبور", type="password", key="login_pass")
-
-if st.button("ورود"):
-    user = read_sql("SELECT * FROM users WHERE نام_کاربر = ? AND رمز_عبور = ?", params=(username, password))
-    if not user.empty:
-        role = user.iloc[0]["نقش"]
-        st.session_state.logged_in = True
-        st.session_state.username = username
-        st.session_state.role = role
-        st.success(f"ورود موفقیت‌آمیز به عنوان {role}")
-
-        if role == "مدیر سامانه":
-            show_superadmin_panel()
-        elif role == "مدیر مدرسه":
-            show_school_admin_panel(username)
-        elif role == "معاون":
-            show_assistant_panel(username)
-        elif role == "آموزگار":
-            show_teacher_panel(username)
-        else:
-            show_student_panel(username)
-    else:
-        student = read_sql("SELECT * FROM students WHERE نام_کاربری = ? AND رمز_دانش‌آموز = ?", params=(username, password))
-        if not student.empty:
+    if st.button("ورود"):
+        user = read_sql("SELECT * FROM users WHERE نام_کاربر = ? AND رمز_عبور = ?", params=(username, password))
+        if not user.empty:
+            role = user.iloc[0]["نقش"]
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.session_state.role = "دانش‌آموز"
-            st.success("ورود موفقیت‌آمیز به عنوان دانش‌آموز 🎒")
-            show_student_panel(username)
+            st.session_state.role = role
+            st.success(f"ورود موفقیت‌آمیز به عنوان {role}")
+            st.rerun()
         else:
-            st.error("❌ نام کاربری یا رمز عبور نادرست است.")
+            student = read_sql("SELECT * FROM students WHERE نام_کاربری = ? AND رمز_دانش‌آموز = ?", params=(username, password))
+            if not student.empty:
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.session_state.role = "دانش‌آموز"
+                st.success("ورود موفقیت‌آمیز به عنوان دانش‌آموز 🎒")
+                st.rerun()
+            else:
+                st.error("❌ نام کاربری یا رمز عبور نادرست است.")
+else:
+    # نمایش پنل مناسب بر اساس نقش
+    role = st.session_state.role
+    username = st.session_state.username
 
-
-
-
-
-
-
-
+    if role == "مدیر سامانه":
+        show_superadmin_panel()
+    elif role == "مدیر مدرسه":
+        show_school_admin_panel(username)
+    elif role == "معاون":
+        show_assistant_panel(username)
+    elif role == "آموزگار":
+        show_teacher_panel(username)
+    else:
+        show_student_panel(username)
