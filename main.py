@@ -196,7 +196,7 @@ def build_student_report_pdf(student_name, rows, school="", student_class="", is
             else:
                 pdf.set_font("Arial", size=12)
     except Exception:
-        pdf.set_font("Arial", size=12")
+        pdf.set_font("Arial", size=12)
 
     # عنوان و اطلاعات پایه
     pdf.cell(0, 8, txt=f"کارنامه دانش‌آموز: {student_name}", ln=True, align="C")
@@ -862,3 +862,4 @@ if st.session_state.logged_in:
         show_student_panel(username)
     else:
         st.info("نقش کاربری شناسایی نشد. لطفاً با مدیر سامانه تماس بگیرید.")
+
