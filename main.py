@@ -886,7 +886,7 @@ username = st.text_input("نام کاربری", key="login_user")
 password = st.text_input("رمز عبور", type="password", key="login_pass")
 
 if st.button("ورود"):
-  user = read_sql("SELECT * FROM users WHERE نام_کاربر = ? AND رمز_عبور = ?", params=(username, password))
+    user = read_sql("SELECT * FROM users WHERE نام_کاربر = ? AND رمز_عبور = ?", params=(username, password))
     if not user.empty:
         role = user.iloc[0]["نقش"]
         st.success(f"ورود موفقیت‌آمیز به عنوان {role}")
@@ -913,6 +913,7 @@ if st.button("ورود"):
 # ------------------------------
 # پایان فایل main.py
 # ------------------------------
+
 
 
 
