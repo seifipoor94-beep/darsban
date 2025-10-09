@@ -569,7 +569,7 @@ def show_class_statistics_panel(username):
         st.dataframe(df)
 
     # نمودار دایره‌ای
-  # ✅ تعریف تابع وضعیت نمره‌ای (اگر قبلاً تعریف نشده)
+ # ✅ تعریف تابع وضعیت نمره‌ای
 def وضعیت_نمره‌ای(student_avg, class_avg):
     if student_avg < class_avg - 2:
         return 1  # نیاز به تلاش بیشتر
@@ -580,7 +580,7 @@ def وضعیت_نمره‌ای(student_avg, class_avg):
     else:
         return 4  # خیلی خوب
 
-# ✅ تعریف متن وضعیت (اختیاری، برای نمایش در جدول یا PDF)
+# ✅ تعریف متن وضعیت
 def متن_وضعیت(status_code):
     return {
         1: "نیاز به تلاش بیشتر",
@@ -589,16 +589,46 @@ def متن_وضعیت(status_code):
         4: "خیلی خوب"
     }.get(status_code, "نامشخص")
 
-# ✅ نمایش نمودار دایره‌ای وضعیت کلاس
-if selected_lesson == "همه دروس":
-    draw_class_pie_chart(username, selected_lesson=None, title="توزیع وضعیت (همه دروس)")
-else:
-    draw_class_pie_chart(username, selected_lesson=selected_lesson, title=f"توزیع وضعیت درس {selected_lesson}")
+# ✅ آمار کلی کلاس با نمودارها
+def show_class_statistics_panel(username):
+    st.subheader("📊 آمار کلی کلاس")
 
-# ✅ نمایش نمودار خطی میانگین کلاس برای درس انتخابی
-if selected_lesson != "همه دروس":
-    if st.button("نمایش نمودار روند میانگین کلاس برای این درس"):
-        show_class_line_chart(username, selected_lesson)
+    lessons = read_sql("SELECT DISTINCT درس FROM scores WHERE آموزگار = ?", params=(username,))
+    lesson_options = ["همه دروس"] + lessons["درس"].tolist() if not lessons.empty else ["همه دروس"]
+
+    selected_lesson = st.selectbox("انتخاب درس برای نمایش آمار:", lesson_options, key=f"class_stats_lesson_{username}")
+
+    if selected_lesson == "همه دروس":
+        df = read_sql("""
+            SELECT نام_دانش‌آموز, درس, AVG(نمره) as میانگین_نمره
+            FROM scores
+            WHERE آموزگار = ?
+            GROUP BY نام_دانش‌آموز, درس
+        """, params=(username,))
+    else:
+        df = read_sql("""
+            SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس
+            FROM scores
+            WHERE آموزگار = ? AND درس = ?
+            GROUP BY نام_دانش‌آموز
+        """, params=(username, selected_lesson))
+
+    if df.empty:
+        st.info("هیچ نمره‌ای ثبت نشده است.")
+    else:
+        st.dataframe(df)
+
+    # ✅ نمودار دایره‌ای وضعیت کلاس
+    if selected_lesson == "همه دروس":
+        draw_class_pie_chart(username, selected_lesson=None, title="توزیع وضعیت (همه دروس)")
+    else:
+        draw_class_pie_chart(username, selected_lesson=selected_lesson, title=f"توزیع وضعیت درس {selected_lesson}")
+
+    # ✅ نمودار خطی میانگین کلاس برای درس انتخابی
+    if selected_lesson != "همه دروس":
+        if st.button("نمایش نمودار روند میانگین کلاس برای این درس"):
+            show_class_line_chart(username, selected_lesson)
+
 
 
 # رتبه‌بندی کلی و هر درس (برای آموزگار/مدیر/معاون)
@@ -954,6 +984,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
