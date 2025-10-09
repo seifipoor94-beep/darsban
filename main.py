@@ -1,25 +1,6 @@
 # main_part1.py
 # بخش ۱: واردات، تنظیمات صفحه، ثبت فونت (Vazir.ttf)، مسیرها و مقداردهی اولیه دیتابیس
-# این فایل را در ابتدای main.py قرار بده. (بخش‌های بعدی را جداگانه می‌فرستم.)
-# در همان بخشی که اتصال دیتابیس انجام میشه
-execute_sql("""
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    نام_کاربر TEXT UNIQUE,
-    نام_کامل TEXT,
-    رمز TEXT,
-    نقش TEXT,
-    مدرسه TEXT
-)
-""")
 
-# اگر مدیر سامانه هنوز ساخته نشده، ایجادش کن
-admin_exists = read_sql("SELECT * FROM users WHERE نقش = 'مدیر سامانه'")
-if admin_exists.empty:
-    execute_sql(
-        "INSERT INTO users (نام_کاربر, نام_کامل, رمز, نقش, مدرسه) VALUES (?, ?, ?, ?, ?)",
-        ("admin", "مدیر سامانه", "1234", "مدیر سامانه", "مدرسه نمونه")
-    )
 
 import os
 import sqlite3
@@ -932,4 +913,5 @@ if st.button("ورود"):
 # ------------------------------
 # پایان فایل main.py
 # ------------------------------
+
 
