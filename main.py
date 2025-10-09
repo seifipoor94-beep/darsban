@@ -1,31 +1,44 @@
+# main_part1.py  -- بخش ۱: واردات، تنظیمات صفحه، دیتابیس، فونت و توابع کمکی عمومی
+
 import os
 import sqlite3
 from datetime import datetime
+import io
+
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from fpdf import FPDF
 import jdatetime
 
+# -------------------------
 # تنظیمات صفحه
+# -------------------------
 st.set_page_config(page_title="سامانه نمرات", layout="wide")
-st.markdown(
-    """
-    <div style="display:flex;align-items:center;gap:12px">
-      <h1 style="margin:0">🎓 سامانه مدیریت نمرات</h1>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
-# مسیر دیتابیس و اتصال
+# -------------------------
+# مسیرها و constantes
+# -------------------------
 DATA_DIR = "data"
+FONTS_DIR = "fonts"
 DB_PATH = os.path.join(DATA_DIR, "school.db")
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(FONTS_DIR, exist_ok=True)
+
+# نام پیشنهادی فونت فارسی (اگر فایل ttf در پوشه fonts قرار بگیره)
+PREFERRED_FONT_FILENAME = "Vazir.ttf"  # اگر این فایل رو بذاری در fonts/ بهتره
+PREFERRED_FONT_FAMILY = "Vazir"  # اسمی که در matplotlib و PDF می‌شناسیم
+
+# -------------------------
+# اتصال به دیتابیس
+# -------------------------
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor = conn.cursor()
 
-# ایجاد جداول در دیتابیس
+# -------------------------
+# توابع: دیتابیس اولیه
+# -------------------------
 def init_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -60,6 +73,8 @@ def init_database():
         )
     """)
     conn.commit()
+
+    # درج کاربر admin پیش‌فرض
     cursor.execute("""
         INSERT OR IGNORE INTO users
         (نام_کاربر, رمز_عبور, نقش, مدرسه, وضعیت, تاریخ_انقضا)
@@ -67,7 +82,69 @@ def init_database():
     """, ("admin", "1234", "مدیر سامانه", "مدرسه نمونه", "فعال", "2099/12/31"))
     conn.commit()
 
-# تابع وضعیت نمره‌ای
+# -------------------------
+# تنظیم فونت برای matplotlib و FPDF
+# توضیح: اگر فایل فونت (TTF) داخل پوشه fonts/ باشه آن را بارگذاری می‌کنیم.
+# در غیر اینصورت از فونت پیشفرض matplotlib استفاده می‌کنیم ولی ممکنه فونت فارسی درست نشان داده نشود.
+# -------------------------
+def register_fonts():
+    # مسیر احتمالی فایل فونت
+    font_path = os.path.join(FONTS_DIR, PREFERRED_FONT_FILENAME)
+    registered = False
+
+    # 1) تلاش برای ثبت فونت برای matplotlib
+    try:
+        if os.path.isfile(font_path):
+            font_manager.fontManager.addfont(font_path)
+            plt.rcParams["font.family"] = PREFERRED_FONT_FAMILY
+            plt.rcParams["axes.unicode_minus"] = False
+            registered = True
+        else:
+            # جستجوی فونت‌های نصب‌شده برای یک فونت فارسی قابل استفاده (DejaVu یا Noto یا Vazir)
+            sys_fonts = [f.name for f in font_manager.fontManager.ttflist]
+            for candidate in ["DejaVu Sans", "Noto Sans", "Vazir", "IRANSans", "Tahoma"]:
+                if candidate in sys_fonts:
+                    plt.rcParams["font.family"] = candidate
+                    plt.rcParams["axes.unicode_minus"] = False
+                    registered = True
+                    break
+    except Exception:
+        # اگر هر مشکلی پیش آمد، به فونت پیشفرض برمی‌گردیم
+        registered = False
+
+    # 2) تنظیم فونت برای FPDF (برای تولید PDF فارسی)
+    # fpdf (pyFPDF) نیاز به add_font با uni=True دارد تا متن‌های یونیکد (مثل فارسی) کار کنند.
+    pdf_font_registered = False
+    try:
+        if os.path.isfile(font_path):
+            # در صورتی که فایل فونت وجود دارد، آن را به fpdf اضافه می‌کنیم
+            # توجه: در بعضی ورژن‌ها نام سبک باید '' یا 'B' یا 'I' و غیره باشد؛ ما سبک '' را اضافه می‌کنیم.
+            FPDF.add_font(FPDF, PREFERRED_FONT_FAMILY, "", font_path, uni=True)
+            pdf_font_registered = True
+        else:
+            # تلاش برای استفاده از DejaVuSans (اگر نصب شده در سیستم)
+            # مسیرهای معمول برای DejaVu
+            common_paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+            ]
+            for p in common_paths:
+                if os.path.isfile(p):
+                    FPDF.add_font(FPDF, "DejaVuSans", "", p, uni=True)
+                    pdf_font_registered = True
+                    break
+    except Exception:
+        pdf_font_registered = False
+
+    return registered, pdf_font_registered, font_path
+
+# اجرا و اطلاعات ثبت فونت
+_fonts_ok_matplotlib, _fonts_ok_pdf, _font_path_used = register_fonts()
+
+# -------------------------
+# توابع کمکی وضعیت و متن
+# -------------------------
 def وضعیت_نمره‌ای(student_avg, class_avg):
     try:
         if student_avg < class_avg * 0.6:
@@ -81,7 +158,6 @@ def وضعیت_نمره‌ای(student_avg, class_avg):
     except Exception:
         return 0
 
-# متن وضعیت
 def متن_وضعیت(status_num):
     وضعیت‌ها = {
         1: "نیاز به تلاش بیشتر",
@@ -91,95 +167,81 @@ def متن_وضعیت(status_num):
     }
     return وضعیت‌ها.get(status_num, "نامشخص")
 
-# ------------------------------
-# پنل مدیر سامانه
-# ------------------------------
-def show_superadmin_panel():
-    st.header("🛠 پنل مدیر سامانه")
-    st.write("این بخش برای مدیریت کاربران سامانه است.")
+# -------------------------
+# تابع کمکی برای تولید PDF با پشتیبانی از فونت فارسی
+# خروجی: بایت‌های PDF (bytes) که می‌توانند توسط st.download_button ارائه شوند.
+# -------------------------
+def build_student_report_pdf(student_name, rows, school="", student_class="", issuer_date_str=None):
+    """
+    student_name: str
+    rows: list of dicts with keys: 'درس', 'میانگین دانش‌آموز', 'میانگین کلاس', 'وضعیت'
+    school, student_class: strings
+    issuer_date_str: str تاریخ به شمسی (مثلاً jdatetime.date.today().strftime("%Y/%m/%d"))
+    """
+    if issuer_date_str is None:
+        issuer_date_str = jdatetime.date.today().strftime("%Y/%m/%d")
 
-    with st.expander("➕ ثبت کاربر جدید"):
-        with st.form("register_user_form"):
-            username = st.text_input("نام کاربری", key="reg_username")
-            password = st.text_input("رمز عبور", type="password", key="reg_password")
-            school = st.text_input("نام مدرسه", key="reg_school")
-            role = st.selectbox("نقش کاربر", ["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"], key="reg_role")
-            expiry_date = st.date_input("تاریخ انقضا", key="reg_expiry")
-            submitted = st.form_submit_button("ثبت کاربر")
+    pdf = FPDF()
+    pdf.add_page()
 
-            if submitted:
-                if not username or not password:
-                    st.error("نام کاربری و رمز عبور را وارد کنید.")
-                else:
-                    expiry_str = expiry_date.strftime("%Y/%m/%d")
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO users
-                        (نام_کاربر, رمز_عبور, نقش, مدرسه, وضعیت, تاریخ_انقضا)
-                        VALUES (?, ?, ?, ?, 'فعال', ?)
-                    """, (username, password, role, school, expiry_str))
-                    conn.commit()
-                    st.success(f"✅ کاربر {username} با نقش {role} ثبت شد.")
-
-    st.subheader("🧑‍🏫 مدیریت کاربران ثبت‌شده")
-    df = pd.read_sql_query("SELECT * FROM users", conn)
-    st.dataframe(df)
-
-    if not df.empty:
-        selected_user = st.selectbox("انتخاب کاربر برای ویرایش یا حذف", df["نام_کاربر"], key="sel_user")
-        user_row = df[df["نام_کاربر"] == selected_user].iloc[0]
-
-        new_password = st.text_input("رمز جدید", value=user_row["رمز_عبور"], key="edit_pwd")
-        roles_list = ["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"]
-        new_role = st.selectbox("نقش جدید", roles_list, index=roles_list.index(user_row["نقش"]), key="edit_role")
-        new_school = st.text_input("مدرسه جدید", value=user_row["مدرسه"], key="edit_school")
-        new_status = st.radio("وضعیت جدید", ["فعال", "مسدود"], index=["فعال", "مسدود"].index(user_row["وضعیت"]), key="edit_status")
-        try:
-            new_expiry = st.date_input("تاریخ جدید انقضا", value=datetime.strptime(user_row["تاریخ_انقضا"], "%Y/%m/%d"), key="edit_expiry")
-        except Exception:
-            new_expiry = st.date_input("تاریخ جدید انقضا", key="edit_expiry_fallback")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("💾 ثبت تغییرات", key="save_user_changes"):
-                expiry_str = new_expiry.strftime("%Y/%m/%d")
-                cursor.execute("""
-                    UPDATE users
-                    SET رمز_عبور = ?, نقش = ?, مدرسه = ?, وضعیت = ?, تاریخ_انقضا = ?
-                    WHERE نام_کاربر = ?
-                """, (new_password, new_role, new_school, new_status, expiry_str, selected_user))
-                conn.commit()
-                st.success("✅ اطلاعات کاربر به‌روزرسانی شد.")
-                st.rerun()
-
-        with col2:
-            if st.button("🗑 حذف کاربر", key="delete_user_btn"):
-                cursor.execute("DELETE FROM users WHERE نام_کاربر = ?", (selected_user,))
-                conn.commit()
-                st.warning(f"❌ کاربر {selected_user} حذف شد.")
-                st.rerun()
-    st.subheader("🔐 تغییر رمز مدیر سامانه")
-    current_password = st.text_input("رمز فعلی", type="password", key="admin_current")
-    new_password = st.text_input("رمز جدید", type="password", key="admin_new")
-    confirm_password = st.text_input("تکرار رمز جدید", type="password", key="admin_confirm")
-
-    if st.button("ثبت تغییر رمز", key="admin_change_btn"):
-        cursor.execute("SELECT * FROM users WHERE نام_کاربر = ? AND رمز_عبور = ?", ("admin", current_password))
-        result = cursor.fetchone()
-
-        if not result:
-            st.error("❌ رمز فعلی اشتباه است.")
-        elif new_password != confirm_password:
-            st.error("❌ رمز جدید با تکرار آن مطابقت ندارد.")
-        elif len(new_password) < 4:
-            st.warning("⚠️ رمز جدید باید حداقل ۴ حرف باشد.")
+    # تلاش برای استفاده از فونت فارسی ثبت‌شده
+    try:
+        if os.path.isfile(_font_path_used):
+            # اگر فونت Vazir ثبت شده، از آن استفاده کن
+            pdf.set_font(_fonts_ok_pdf and PREFERRED_FONT_FAMILY or "Arial", size=12)
         else:
-            cursor.execute("UPDATE users SET رمز_عبور = ? WHERE نام_کاربر = ?", (new_password, "admin"))
-            conn.commit()
-            st.success("✅ رمز ورود تغییر یافت.")
+            # اگر فونتی ثبت نشده، تلاش برای DejaVuSans یا fallback به Arial
+            if _fonts_ok_pdf:
+                pdf.set_font("DejaVuSans", size=12)
+            else:
+                pdf.set_font("Arial", size=12)
+    except Exception:
+        pdf.set_font("Arial", size=12")
 
+    # عنوان و اطلاعات پایه
+    pdf.cell(0, 8, txt=f"کارنامه دانش‌آموز: {student_name}", ln=True, align="C")
+    pdf.cell(0, 8, txt=f"تاریخ صدور: {issuer_date_str}", ln=True, align="C")
+    pdf.ln(4)
+    if school:
+        pdf.cell(0, 6, txt=f"مدرسه: {school}", ln=True)
+    if student_class:
+        pdf.cell(0, 6, txt=f"کلاس: {student_class}", ln=True)
+    pdf.ln(4)
+
+    # جدول خلاصه
+    for row in rows:
+        lesson = str(row.get("درس", ""))
+        s_avg = str(row.get("میانگین دانش‌آموز", ""))
+        c_avg = str(row.get("میانگین کلاس", ""))
+        status = str(row.get("وضعیت", ""))
+        line = f"{lesson}: میانگین دانش‌آموز {s_avg}، میانگین کلاس {c_avg}، وضعیت: {status}"
+        pdf.multi_cell(0, 7, txt=line)
+
+    # خروجی بایت‌ها
+    try:
+        pdf_bytes = pdf.output(dest="S").encode("latin1")
+    except Exception:
+        # اگر encoding لاتین مشکل داشت (برای فارسی)، از بایت خام خروجی استفاده می‌کنیم (py3k)
+        try:
+            pdf_bytes = pdf.output(dest="S").encode("utf-8", errors="ignore")
+        except Exception:
+            # آخرین حربه: خروجی بدون encode (ممکنه نوع str باشد)، آن را به bytes تبدیل می‌کنیم
+            out = pdf.output(dest="S")
+            if isinstance(out, bytes):
+                pdf_bytes = out
+            else:
+                pdf_bytes = out.encode("latin1", errors="ignore")
+    return pdf_bytes
+
+# -------------------------
+# مقداردهی اولیه دیتابیس
+# -------------------------
+init_database()
 # ------------------------------
-# پنل آموزگار
+# بخش ۲: پنل آموزگار — ثبت/ویرایش دانش‌آموز، ثبت/ویرایش نمرات، نمودارها، رتبه‌بندی
 # ------------------------------
+
+# ثبت دانش‌آموز جدید (قابل استفاده در پنل آموزگار)
 def register_student_form(username):
     st.subheader("➕ ثبت دانش‌آموز جدید")
     name = st.text_input("نام دانش‌آموز", key=f"std_name_{username}")
@@ -197,9 +259,47 @@ def register_student_form(username):
         """, (username, name, username_std, password_std, class_name, today))
         conn.commit()
         st.success("✅ دانش‌آموز با موفقیت ثبت شد.")
+        st.rerun()
 
+# ویرایش یا حذف دانش‌آموزان (برای آموزگار)
+def edit_or_delete_student(username):
+    st.subheader("✏️ ویرایش / حذف دانش‌آموز")
+    students_df = pd.read_sql_query("SELECT * FROM students WHERE آموزگار = ?", conn, params=(username,))
+    if students_df.empty:
+        st.info("هیچ دانش‌آموزی ثبت نشده است.")
+        return
+
+    selected = st.selectbox("انتخاب دانش‌آموز برای ویرایش:", students_df["نام_دانش‌آموز"].unique(), key=f"edit_std_select_{username}")
+    row = students_df[students_df["نام_دانش‌آموز"] == selected].iloc[0]
+
+    new_name = st.text_input("نام دانش‌آموز", value=row["نام_دانش‌آموز"], key=f"edit_name_{username}")
+    new_username = st.text_input("نام کاربری دانش‌آموز", value=row["نام_کاربری"], key=f"edit_usr_{username}")
+    new_pwd = st.text_input("رمز دانش‌آموز", value=row["رمز_دانش‌آموز"], key=f"edit_pwd_std_{username}")
+    new_class = st.text_input("کلاس", value=row["کلاس"], key=f"edit_class_{username}")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾 ذخیره تغییرات دانش‌آموز", key=f"save_std_{username}"):
+            cursor.execute("""
+                UPDATE students
+                SET نام_دانش‌آموز = ?, نام_کاربری = ?, رمز_دانش‌آموز = ?, کلاس = ?
+                WHERE id = ?
+            """, (new_name, new_username, new_pwd, new_class, row["id"]))
+            conn.commit()
+            st.success("✅ اطلاعات دانش‌آموز به‌روزرسانی شد.")
+            st.rerun()
+    with col2:
+        if st.button("🗑 حذف دانش‌آموز", key=f"del_std_{username}"):
+            # حذف همه نمرات مرتبط نیز
+            cursor.execute("DELETE FROM scores WHERE نام_دانش‌آموز = ?", (row["نام_دانش‌آموز"],))
+            cursor.execute("DELETE FROM students WHERE id = ?", (row["id"],))
+            conn.commit()
+            st.warning("❌ دانش‌آموز و نمرات مربوطه حذف شدند.")
+            st.rerun()
+
+# ثبت نمره (اضافه)
 def show_score_entry_panel(username):
-    st.subheader("📌 ثبت نمره")
+    st.subheader("📌 ثبت نمره جدید")
     student_df = pd.read_sql_query("SELECT نام_دانش‌آموز FROM students WHERE آموزگار = ?", conn, params=(username,))
     if student_df.empty:
         st.info("هیچ دانش‌آموزی ثبت نشده است.")
@@ -220,62 +320,216 @@ def show_score_entry_panel(username):
         """, (username, student_name, lesson, score_number, score_value, today))
         conn.commit()
         st.success("✅ نمره ثبت شد.")
+        st.rerun()
 
-def show_class_statistics_panel(username):
-    st.subheader("📊 آمار کلی کلاس")
-    df = pd.read_sql_query("""
-        SELECT نام_دانش‌آموز, درس, AVG(نمره) as میانگین_نمره
-        FROM scores
-        WHERE آموزگار = ?
-        GROUP BY نام_دانش‌آموز, درس
-    """, conn, params=(username,))
-    if df.empty:
-        st.info("هیچ نمره‌ای ثبت نشده است.")
-        return
-    st.dataframe(df)
-
-def draw_pie_chart(student_name):
-    df = pd.read_sql_query("""
-        SELECT درس, AVG(نمره) as میانگین_دانش‌آموز
-        FROM scores
-        WHERE نام_دانش‌آموز = ?
-        GROUP BY درس
-    """, conn, params=(student_name,))
-
-    if df.empty:
-        st.info("هیچ نمره‌ای برای رسم نمودار وجود ندارد.")
+# ویرایش یا حذف نمرات ثبت‌شده برای یک دانش‌آموز (پنل آموزگار)
+def edit_scores_for_student(username):
+    st.subheader("✏️ ویرایش / حذف نمرات دانش‌آموز")
+    student_df = pd.read_sql_query("SELECT نام_دانش‌آموز FROM students WHERE آموزگار = ?", conn, params=(username,))
+    if student_df.empty:
+        st.info("هیچ دانش‌آموزی ثبت نشده است.")
         return
 
-    status_counts = {1: 0, 2: 0, 3: 0, 4: 0}
-    for _, row in df.iterrows():
-        lesson = row["درس"]
-        student_avg = row["میانگین_دانش‌آموز"]
-        teacher_row = pd.read_sql_query("SELECT آموزگار FROM students WHERE نام_دانش‌آموز = ?", conn, params=(student_name,))
-        if teacher_row.empty:
-            continue
-        teacher = teacher_row.iloc[0]["آموزگار"]
-        class_avg_row = pd.read_sql_query("""
-            SELECT AVG(نمره) as میانگین_کلاس
+    student_name = st.selectbox("انتخاب دانش‌آموز:", student_df["نام_دانش‌آموز"].unique(), key=f"edit_score_student_{username}")
+    scores_df = pd.read_sql_query("SELECT * FROM scores WHERE نام_دانش‌آموز = ? AND آموزگار = ?", conn, params=(student_name, username))
+    if scores_df.empty:
+        st.info("برای این دانش‌آموز هنوز نمره‌ای ثبت نشده است.")
+        return
+
+    # نمایش جدول نمرات
+    st.markdown("### فهرست نمرات")
+    st.dataframe(scores_df[["id", "درس", "نمره_شماره", "نمره", "تاریخ"]].set_index("id"))
+
+    selected_id = st.selectbox("انتخاب ردیف (id) برای ویرایش/حذف:", scores_df["id"].tolist(), key=f"sel_score_id_{username}")
+    sel_row = scores_df[scores_df["id"] == selected_id].iloc[0]
+
+    new_lesson = st.text_input("درس", value=sel_row["درس"], key=f"edit_score_lesson_{username}")
+    new_num = st.text_input("شماره نمره", value=sel_row["نمره_شماره"], key=f"edit_score_num_{username}")
+    new_val = st.number_input("نمره", min_value=0, max_value=20, value=int(sel_row["نمره"]), key=f"edit_score_val_{username}")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾 ذخیره تغییرات نمره", key=f"save_score_{username}"):
+            cursor.execute("""
+                UPDATE scores
+                SET درس = ?, نمره_شماره = ?, نمره = ?
+                WHERE id = ?
+            """, (new_lesson, new_num, new_val, selected_id))
+            conn.commit()
+            st.success("✅ نمره به‌روزرسانی شد.")
+            st.rerun()
+    with col2:
+        if st.button("🗑 حذف نمره", key=f"del_score_{username}"):
+            cursor.execute("DELETE FROM scores WHERE id = ?", (selected_id,))
+            conn.commit()
+            st.warning("❌ نمره حذف شد.")
+            st.rerun()
+
+# نمودار خطی پیشرفت برای یک دانش‌آموز و درس مشخص
+def show_student_line_chart(student_name, lesson):
+    df_line = pd.read_sql_query("""
+        SELECT id, نمره_شماره, نمره FROM scores
+        WHERE نام_دانش‌آموز = ? AND درس = ?
+        ORDER BY id
+    """, conn, params=(student_name, lesson))
+
+    if df_line.empty:
+        st.info("برای این درس هنوز نمره‌ای ثبت نشده است.")
+        return
+
+    # رسم نمودار خطی
+    fig, ax = plt.subplots(figsize=(6, 3))
+    # x labels = نمره_شماره (متن) ; y = نمره
+    ax.plot(df_line["نمره_شماره"], df_line["نمره"], marker="o", linewidth=2)
+    ax.set_title(f"روند نمرات {student_name} - درس {lesson}")
+    ax.set_xlabel("شماره نمره")
+    ax.set_ylabel("نمره")
+    # برای راست‌چین شدن جهت زمان/شماره، محور x را معکوس می‌کنیم تا نمودار از راست به چپ باشد
+    try:
+        ax.invert_xaxis()
+    except Exception:
+        pass
+    plt.tight_layout()
+    st.pyplot(fig)
+
+# رسم نمودار دایره‌ای وضعیت کلی (کلاسی یا برای یک درس خاص)
+def draw_class_pie_chart(teacher, selected_lesson=None):
+    # اگر درس مشخص نشده، برای هر درس میانگین دانش‌آموز را محاسبه و وضعیت کلی (تعداد درس‌ها در هر وضعیت) را جمع می‌کنیم
+    if selected_lesson:
+        df = pd.read_sql_query("""
+            SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس
             FROM scores
             WHERE آموزگار = ? AND درس = ?
-        """, conn, params=(teacher, lesson))
-        class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
-        status = وضعیت_نمره‌ای(student_avg, class_avg)
-        if status in status_counts:
-            status_counts[status] += 1
+            GROUP BY نام_دانش‌آموز
+        """, conn, params=(teacher, selected_lesson))
+    else:
+        df = pd.read_sql_query("""
+            SELECT نام_دانش‌آموز, درس, AVG(نمره) as میانگین_دانش‌آموز
+            FROM scores
+            WHERE آموزگار = ?
+            GROUP BY نام_دانش‌آموز, درس
+        """, conn, params=(teacher,))
+
+    if df.empty:
+        st.info("اطلاعات نمرات موجود نیست.")
+        return
+
+    # اگر selected_lesson نیست، باید ابتدا میانگین هر دانش‌آموز در همه دروس را حساب کنیم
+    if selected_lesson:
+        # برای هر دانش‌آموز وضعیت تعیین کن
+        status_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+        for _, row in df.iterrows():
+            student_avg = row["میانگین_درس"]
+            # برای محاسبه میانگین کلاس روی آن درس
+            class_avg_row = pd.read_sql_query("""
+                SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?
+            """, conn, params=(teacher, selected_lesson))
+            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+            status = وضعیت_نمره‌ای(student_avg, class_avg)
+            if status in status_counts:
+                status_counts[status] += 1
+    else:
+        # df شامل ردیف به ردیف (هر دانش‌آموز-درس). ابتدا میانگین دانش‌آموز در همه دروس را محاسبه می‌کنیم
+        grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
+        status_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+        for _, row in grouped.iterrows():
+            student_avg = row["میانگین_دانش‌آموز"]
+            # میانگین کلی کلاس (میانگین همه نمرات برای آموزگار)
+            class_avg_row = pd.read_sql_query("""
+                SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ?
+            """, conn, params=(teacher,))
+            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+            status = وضعیت_نمره‌ای(student_avg, class_avg)
+            if status in status_counts:
+                status_counts[status] += 1
 
     labels = ["نیاز به تلاش بیشتر", "قابل قبول", "خوب", "خیلی خوب"]
     sizes = [status_counts[i] for i in range(1, 5)]
-
     if sum(sizes) == 0:
         st.info("داده کافی برای نمودار وجود ندارد.")
         return
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 4))
     ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-    ax.set_title("📊 توزیع وضعیت نمرات")
+    ax.set_title("توزیع وضعیت کلاس")
     st.pyplot(fig)
 
+# آمار کلی کلاس با انتخاب درس (برای آموزگار)
+def show_class_statistics_panel(username):
+    st.subheader("📊 آمار کلی کلاس")
+    # امکان انتخاب درس برای فیلتر
+    lessons = pd.read_sql_query("SELECT DISTINCT درس FROM scores WHERE آموزگار = ?", conn, params=(username,))
+    lesson_options = ["همه دروس"] + lessons["درس"].tolist() if not lessons.empty else ["همه دروس"]
+    selected_lesson = st.selectbox("انتخاب درس برای نمایش آمار:", lesson_options, key=f"class_stats_lesson_{username}")
+
+    if selected_lesson == "همه دروس":
+        df = pd.read_sql_query("""
+            SELECT نام_دانش‌آموز, درس, AVG(نمره) as میانگین_نمره
+            FROM scores
+            WHERE آموزگار = ?
+            GROUP BY نام_دانش‌آموز, درس
+        """, conn, params=(username,))
+    else:
+        df = pd.read_sql_query("""
+            SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس
+            FROM scores
+            WHERE آموزگار = ? AND درس = ?
+            GROUP BY نام_دانش‌آموز
+        """, conn, params=(username, selected_lesson))
+
+    if df.empty:
+        st.info("هیچ نمره‌ای ثبت نشده است.")
+    else:
+        st.dataframe(df)
+
+    # نمودار دایره‌ای وضعیت کل کلاس (براساس انتخاب درس یا همه دروس)
+    if selected_lesson == "همه دروس":
+        draw_class_pie_chart(username, selected_lesson=None)
+    else:
+        draw_class_pie_chart(username, selected_lesson=selected_lesson)
+
+# رتبه‌بندی کلی کلاس و رتبه‌بندی در هر درس (برای آموزگار/مدیر/معاون)
+def show_class_ranking_panel(username_or_school_admin, role="آموزگار"):
+    """
+    اگر role == 'آموزگار' آنگاه username_or_school_admin باید نام آموزگار باشه،
+    اگر role در ['مدیر مدرسه','معاون'] آنگاه username_or_school_admin باید نام مدرسه باشد.
+    """
+    st.subheader("🏅 رتبه‌بندی کلاس")
+    if role in ["مدیر مدرسه", "معاون"]:
+        teachers_df = pd.read_sql_query("SELECT نام_کاربر FROM users WHERE نقش = 'آموزگار' AND مدرسه = ?", conn, params=(username_or_school_admin,))
+        if teachers_df.empty:
+            st.info("هیچ آموزگاری برای این مدرسه ثبت نشده است.")
+            return
+        selected_teacher = st.selectbox("انتخاب آموزگار:", teachers_df["نام_کاربر"].unique(), key=f"rank_select_teacher_{username_or_school_admin}")
+    else:
+        selected_teacher = username_or_school_admin
+
+    lessons_df = pd.read_sql_query("SELECT DISTINCT درس FROM scores WHERE آموزگار = ?", conn, params=(selected_teacher,))
+    lesson_options = ["کل دروس"] + lessons_df["درس"].tolist() if not lessons_df.empty else ["کل دروس"]
+    selected_lesson = st.selectbox("انتخاب درس برای رتبه‌بندی:", lesson_options, key=f"rank_lesson_{selected_teacher}")
+
+    if selected_lesson == "کل دروس":
+        total_df = pd.read_sql_query("""
+            SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_کل
+            FROM scores
+            WHERE آموزگار = ?
+            GROUP BY نام_دانش‌آموز
+            ORDER BY میانگین_کل DESC
+        """, conn, params=(selected_teacher,))
+        st.markdown("### 📊 رتبه‌بندی کلی کلاس")
+        st.dataframe(total_df)
+    else:
+        lesson_df = pd.read_sql_query("""
+            SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس
+            FROM scores
+            WHERE آموزگار = ? AND درس = ?
+            GROUP BY نام_دانش‌آموز
+            ORDER BY میانگین_درس DESC
+        """, conn, params=(selected_teacher, selected_lesson))
+        st.markdown(f"### 📘 رتبه‌بندی درس {selected_lesson}")
+        st.dataframe(lesson_df)
+
+# نمایش گزارش فردی دانش‌آموز (برای آموزگار) — شامل نمودار خطی برای درس انتخابی
 def show_individual_report_panel(username):
     st.subheader("👤 گزارش فردی دانش‌آموز")
     student_df = pd.read_sql_query("SELECT نام_دانش‌آموز FROM students WHERE آموزگار = ?", conn, params=(username,))
@@ -283,7 +537,44 @@ def show_individual_report_panel(username):
         st.info("هیچ دانش‌آموزی ثبت نشده است.")
         return
     student_name = st.selectbox("انتخاب دانش‌آموز:", student_df["نام_دانش‌آموز"].unique(), key=f"ind_rep_{username}")
-    draw_pie_chart(student_name)
+
+    # انتخاب درس خاص برای نمایش نمودار خطی
+    lessons_df = pd.read_sql_query("SELECT DISTINCT درس FROM scores WHERE نام_دانش‌آموز = ? AND آموزگار = ?", conn, params=(student_name, username))
+    if lessons_df.empty:
+        st.info("برای این دانش‌آموز هنوز نمره‌ای ثبت نشده است.")
+        return
+    lesson_choice = st.selectbox("انتخاب درس برای نمایش نمودار:", lessons_df["درس"].unique(), key=f"ind_less_{username}_{student_name}")
+
+    # نمایش نمودار خطی
+    show_student_line_chart(student_name, lesson_choice)
+
+    # همچنین نمایش نمودار دایره‌ای وضعیت آن دانش‌آموز (خلاصه)
+    # ساختار برای یک دانش‌آموز: میانگین هر درس -> سپس تعیین وضعیت نسبت به میانگین کلاس آن درس
+    df = pd.read_sql_query("""
+        SELECT درس, AVG(نمره) as میانگین_دانش‌آموز
+        FROM scores
+        WHERE نام_دانش‌آموز = ?
+        GROUP BY درس
+    """, conn, params=(student_name,))
+    if not df.empty:
+        rows = []
+        for _, row in df.iterrows():
+            lesson = row["درس"]
+            student_avg = row["میانگین_دانش‌آموز"]
+            class_avg_row = pd.read_sql_query("""
+                SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?
+            """, conn, params=(username, lesson))
+            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+            status_num = وضعیت_نمره‌ای(student_avg, class_avg)
+            status_text = متن_وضعیت(status_num)
+            rows.append({"درس": lesson, "میانگین دانش‌آموز": round(student_avg,2), "میانگین کلاس": round(class_avg,2), "وضعیت": status_text})
+        st.markdown("### 📄 جدول خلاصه نمرات")
+        st.table(pd.DataFrame(rows))
+# ------------------------------
+# بخش ۳: پنل مدیر مدرسه، معاون، و دانش‌آموز + دانلود PDF
+# ------------------------------
+
+# دانلود PDF کارنامه برای آموزگار
 def download_student_report(username):
     st.subheader("📄 دانلود کارنامه PDF")
     student_df = pd.read_sql_query("SELECT نام_دانش‌آموز FROM students WHERE آموزگار = ?", conn, params=(username,))
@@ -333,70 +624,91 @@ def download_student_report(username):
     )
     st.table(pd.DataFrame(rows))
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"کارنامه دانش‌آموز: {student_name}", ln=True, align="C")
-    pdf.cell(200, 10, txt=f"تاریخ صدور: {today_shamsi}", ln=True, align="C")
-    pdf.ln(10)
-
-    for row in rows:
-        pdf.cell(0, 8, txt=f"{row['درس']}: میانگین دانش‌آموز {row['میانگین دانش‌آموز']}، میانگین کلاس {row['میانگین کلاس']}، وضعیت: {row['وضعیت']}", ln=True)
-
-    pdf_output = pdf.output(dest="S").encode("latin1")
-    st.download_button(label="📥 دانلود کارنامه PDF", data=pdf_output, file_name=f"report_{student_name}.pdf", mime="application/pdf")
+    pdf_bytes = build_student_report_pdf(student_name, rows, school, student_class, today_shamsi)
+    st.download_button(label="📥 دانلود کارنامه PDF", data=pdf_bytes, file_name=f"report_{student_name}.pdf", mime="application/pdf")
 
 # ------------------------------
-# پنل مدیر مدرسه و معاون
+# پنل مدیر مدرسه
 # ------------------------------
-def show_teacher_statistics_by_admin(school):
-    st.subheader("📈 آمار آموزگاران مدرسه")
-    teachers_df = pd.read_sql_query("SELECT نام_کاربر, مدرسه, نقش FROM users WHERE مدرسه = ? AND نقش = 'آموزگار'", conn, params=(school,))
-    if teachers_df.empty:
-        st.info("هیچ آموزگاری برای این مدرسه ثبت نشده است.")
-        return
-    st.dataframe(teachers_df)
-
 def show_school_admin_panel(school):
     st.header("🏫 پنل مدیر مدرسه")
     st.write(f"مدرسه: {school}")
-    show_teacher_statistics_by_admin(school)
 
+    # آمار آموزگاران مدرسه
+    st.markdown("### 📋 فهرست آموزگاران")
+    teachers_df = pd.read_sql_query("SELECT نام_کاربر, نقش FROM users WHERE مدرسه = ? AND نقش = 'آموزگار'", conn, params=(school,))
+    st.dataframe(teachers_df)
+
+    st.markdown("### 📊 آمار و رتبه‌بندی")
+    show_class_ranking_panel(school, role="مدیر مدرسه")
+
+# ------------------------------
+# پنل معاون
+# ------------------------------
 def show_assistant_panel(school):
-    st.header("📋 پنل معاون")
+    st.header("📚 پنل معاون")
     st.write(f"مدرسه: {school}")
-    show_teacher_statistics_by_admin(school)
+    show_class_ranking_panel(school, role="معاون")
 
 # ------------------------------
 # پنل دانش‌آموز
 # ------------------------------
-def download_student_report_direct(student_name):
-    student_info = pd.read_sql_query("SELECT * FROM students WHERE نام_دانش‌آموز = ?", conn, params=(student_name,))
-    if student_info.empty:
-        st.error("اطلاعات دانش‌آموز پیدا نشد.")
-        return
-    student_info = student_info.iloc[0]
-    teacher = student_info["آموزگار"]
-    student_class = student_info["کلاس"]
-    school_row = pd.read_sql_query("SELECT مدرسه FROM users WHERE نام_کاربر = ?", conn, params=(teacher,))
-    school = school_row.iloc[0]["مدرسه"] if not school_row.empty else ""
-    today_shamsi = jdatetime.date.today().strftime("%Y/%m/%d")
+def show_student_panel(username):
+    st.header("👧 پنل دانش‌آموز")
+    st.write(f"خوش آمدی، {username}!")
 
+    student_info = pd.read_sql_query("SELECT * FROM students WHERE نام_کاربری = ?", conn, params=(username,))
+    if student_info.empty:
+        st.error("اطلاعات شما پیدا نشد.")
+        return
+    student_name = student_info.iloc[0]["نام_دانش‌آموز"]
+    student_class = student_info.iloc[0]["کلاس"]
+    teacher = student_info.iloc[0]["آموزگار"]
+
+    # درس‌ها
+    lessons_df = pd.read_sql_query("SELECT DISTINCT درس FROM scores WHERE نام_دانش‌آموز = ?", conn, params=(student_name,))
+    if lessons_df.empty:
+        st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
+        return
+
+    selected_lesson = st.selectbox("انتخاب درس:", lessons_df["درس"].unique(), key=f"stud_lesson_{username}")
+
+    st.markdown("### 📈 نمودار خطی پیشرفت در این درس")
+    df_line = pd.read_sql_query("""
+        SELECT نمره_شماره, نمره FROM scores
+        WHERE نام_دانش‌آموز = ? AND درس = ?
+        ORDER BY id
+    """, conn, params=(student_name, selected_lesson))
+    if not df_line.empty:
+        fig, ax = plt.subplots()
+        ax.plot(df_line["نمره_شماره"], df_line["نمره"], marker="o", linewidth=2)
+        ax.set_title(f"روند نمرات درس {selected_lesson}")
+        ax.set_xlabel("شماره نمره")
+        ax.set_ylabel("نمره")
+        try:
+            ax.invert_xaxis()
+        except Exception:
+            pass
+        st.pyplot(fig)
+    else:
+        st.info("برای این درس هنوز نمره‌ای ثبت نشده است.")
+
+    st.markdown("### 🟢 نمودار دایره‌ای میانگین نمرات")
+    draw_class_pie_chart(teacher)
+
+    # جدول کارنامه شخصی
     df = pd.read_sql_query("""
         SELECT درس, AVG(نمره) as میانگین_دانش‌آموز
         FROM scores
         WHERE نام_دانش‌آموز = ?
         GROUP BY درس
     """, conn, params=(student_name,))
-
     rows = []
     for _, row in df.iterrows():
         lesson = row["درس"]
         student_avg = row["میانگین_دانش‌آموز"]
         class_avg_row = pd.read_sql_query("""
-            SELECT AVG(نمره) as میانگین_کلاس
-            FROM scores
-            WHERE آموزگار = ? AND درس = ?
+            SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?
         """, conn, params=(teacher, lesson))
         class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
         status_num = وضعیت_نمره‌ای(student_avg, class_avg)
@@ -408,62 +720,16 @@ def download_student_report_direct(student_name):
             "وضعیت": status_text
         })
 
+    st.markdown("### 📄 جدول کارنامه")
     st.table(pd.DataFrame(rows))
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"کارنامه دانش‌آموز: {student_name}", ln=True, align="C")
-    pdf.cell(200, 10, txt=f"تاریخ صدور: {today_shamsi}", ln=True, align="C")
-    pdf.ln(10)
-    for row in rows:
-        pdf.cell(0, 8, txt=f"{row['درس']}: میانگین دانش‌آموز {row['میانگین دانش‌آموز']}، میانگین کلاس {row['میانگین کلاس']}، وضعیت: {row['وضعیت']}", ln=True)
-    pdf_output = pdf.output(dest="S").encode("latin1")
-    st.download_button(label="📥 دانلود کارنامه PDF", data=pdf_output, file_name=f"report_{student_name}.pdf", mime="application/pdf")
-
-def show_student_panel(username):
-    st.header("👧 پنل دانش‌آموز")
-    st.write(f"خوش آمدی، {username} عزیز!")
-
-    student_info = pd.read_sql_query("SELECT * FROM students WHERE نام_کاربری = ?", conn, params=(username,))
-    if student_info.empty:
-        st.error("اطلاعات شما پیدا نشد.")
-        return
-    student_name = student_info.iloc[0]["نام_دانش‌آموز"]
-
-    lessons_df = pd.read_sql_query("SELECT DISTINCT درس FROM scores WHERE نام_دانش‌آموز = ?", conn, params=(student_name,))
-    if lessons_df.empty:
-        st.info("هنوز نمره‌ای برای شما ثبت نشده.")
-    else:
-        selected_lesson = st.selectbox("انتخاب درس:", lessons_df["درس"].unique(), key=f"stud_lesson_{username}")
-
-        st.markdown("### 📈 نمودار خطی پیشرفت")
-        df_line = pd.read_sql_query("""
-            SELECT نمره_شماره, نمره FROM scores
-            WHERE نام_دانش‌آموز = ? AND درس = ?
-            ORDER BY نمره_شماره
-        """, conn, params=(student_name, selected_lesson))
-
-        if not df_line.empty:
-            fig, ax = plt.subplots()
-            ax.plot(df_line["نمره_شماره"], df_line["نمره"], marker="o")
-            ax.set_title(f"روند نمرات درس {selected_lesson}")
-            ax.set_xlabel("شماره نمره")
-            ax.set_ylabel("نمره")
-            st.pyplot(fig)
-        else:
-            st.info("برای این درس هنوز نمره‌ای ثبت نشده است.")
-
-    st.markdown("### 🟢 نمودار دایره‌ای میانگین نمرات")
-    draw_pie_chart(student_name)
-
-    st.markdown("### 📄 جدول کارنامه")
-    download_student_report_direct(student_name)
+    pdf_bytes = build_student_report_pdf(student_name, rows, student_class=student_class)
+    st.download_button(label="📥 دانلود PDF کارنامه", data=pdf_bytes, file_name=f"student_report_{student_name}.pdf", mime="application/pdf")
 # ------------------------------
-# مقداردهی اولیه و state
+# بخش ۴ (پایانی): ورود، سشن و نقشه نقش‌ها
 # ------------------------------
-init_database()
 
+# مقداردهی اولیه state
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
@@ -473,9 +739,7 @@ if "role" not in st.session_state:
 if "school" not in st.session_state:
     st.session_state.school = ""
 
-# ------------------------------
-# نوار کناری
-# ------------------------------
+# نوار کناری: وضعیت و خروج
 with st.sidebar:
     st.markdown("### وضعیت ورود")
     if st.session_state.logged_in:
@@ -491,9 +755,7 @@ with st.sidebar:
     else:
         st.write("شما وارد نشده‌اید.")
 
-# ------------------------------
 # فرم ورود
-# ------------------------------
 if not st.session_state.logged_in:
     st.subheader("🔐 ورود به سامانه")
     col1, col2 = st.columns([1, 2])
@@ -503,14 +765,13 @@ if not st.session_state.logged_in:
         login_btn = st.button("ورود", key="login_btn")
 
         if login_btn:
-            # بررسی کاربران رسمی
+            # خواندن کاربران و دانش‌آموزان
             user_df = pd.read_sql_query("SELECT * FROM users", conn)
             user_row = user_df[
                 (user_df["نام_کاربر"] == username_input) &
                 (user_df["رمز_عبور"] == password_input)
             ]
 
-            # بررسی دانش‌آموزان
             student_df = pd.read_sql_query("SELECT * FROM students", conn)
             if "نام_کاربری" in student_df.columns:
                 student_row = student_df[
@@ -556,9 +817,7 @@ if not st.session_state.logged_in:
             else:
                 st.error("❌ نام کاربری یا رمز اشتباه است.")
 
-# ------------------------------
 # نمایش پنل‌ها بر اساس نقش
-# ------------------------------
 if st.session_state.logged_in:
     role = st.session_state.role
     username = st.session_state.username
@@ -571,15 +830,23 @@ if st.session_state.logged_in:
     elif role == "معاون":
         show_assistant_panel(school)
     elif role == "آموزگار":
+        # منوی آموزگار (امکانات ثبت/ویرایش دانش‌آموز و نمره و آمار)
         teacher_action = st.radio("لطفاً انتخاب کنید:", [
             "➕ ثبت دانش‌آموز جدید",
+            "✏️ ویرایش / حذف اطلاعات دانش‌آموزان",
+            "✏️ ویرایش / حذف نمرات دانش‌آموز",
             "📌 ثبت نمره",
             "📊 آمار کلی کلاس",
             "👤 گزارش فردی دانش‌آموز",
-            "📄 دانلود کارنامه PDF"
-        ])
+            "📄 دانلود کارنامه PDF",
+            "🏅 رتبه‌بندی کلاس"
+        ], key="teacher_main_menu")
         if teacher_action == "➕ ثبت دانش‌آموز جدید":
             register_student_form(username)
+        elif teacher_action == "✏️ ویرایش / حذف اطلاعات دانش‌آموزان":
+            edit_or_delete_student(username)
+        elif teacher_action == "✏️ ویرایش / حذف نمرات دانش‌آموز":
+            edit_scores_for_student(username)
         elif teacher_action == "📌 ثبت نمره":
             show_score_entry_panel(username)
         elif teacher_action == "📊 آمار کلی کلاس":
@@ -588,6 +855,9 @@ if st.session_state.logged_in:
             show_individual_report_panel(username)
         elif teacher_action == "📄 دانلود کارنامه PDF":
             download_student_report(username)
+        elif teacher_action == "🏅 رتبه‌بندی کلاس":
+            show_class_ranking_panel(username, role="آموزگار")
+
     elif role == "دانش‌آموز":
         show_student_panel(username)
     else:
