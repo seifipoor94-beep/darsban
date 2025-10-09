@@ -27,8 +27,16 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 # -------------------------
+# مقداردهی اولیه وضعیت ورود و اطلاعات کاربر
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "username" not in st.session_state:
+    st.session_state.username = None
+
+if "role" not in st.session_state:
+    st.session_state.role = None
 # مسیرها
 # -------------------------
 # اگر روی Render/Heroku/... اجرا می‌کنی و متغیر DATA_DIR را تنظیم کردی، از آن استفاده شود.
@@ -926,6 +934,7 @@ if st.button("ورود"):
             show_student_panel(username)
         else:
             st.error("❌ نام کاربری یا رمز عبور نادرست است.")
+
 
 
 
