@@ -939,8 +939,6 @@ def show_student_panel(username):
 
 
 # ------------------------------
-ssion_state.school = ""
-
 # نوار کناری: وضعیت و خروج
 with st.sidebar:
     st.markdown("### وضعیت ورود")
@@ -1001,6 +999,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
