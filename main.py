@@ -16,17 +16,18 @@ from fpdf import FPDF
 import jdatetime
 
 # -------------------------
+# تنظیم فونت فارسی برای نمودارها
+font_path = "fonts/vazir.ttf"
+if os.path.exists(font_path):
+    font_prop = fm.FontProperties(fname=font_path)
+    rcParams['font.family'] = font_prop.get_name()
+else:
+    rcParams['font.family'] = 'DejaVu Sans'
+rcParams['axes.unicode_minus'] = False
+# تنظیم صفحه
+st.set_page_config(page_title="📊 درس‌بان | داشبورد تحلیلی کلاس", layout="wide")
 # تنظیم صفحه Streamlit
 # -------------------------
-st.set_page_config(page_title="سامانه نمرات", layout="wide")
-st.markdown(
-    """
-    <div style="display:flex;align-items:center;gap:12px">
-      <h1 style="margin:0">🎓 سامانه مدیریت نمرات</h1>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 # -------------------------
 # مقداردهی اولیه وضعیت ورود و اطلاعات کاربر
 if "logged_in" not in st.session_state:
@@ -1040,6 +1041,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
