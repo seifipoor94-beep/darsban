@@ -1,7 +1,3 @@
-# main_part1.py
-# بخش ۱: واردات، تنظیمات صفحه، ثبت فونت (Vazir.ttf)، مسیرها و مقداردهی اولیه دیتابیس
-
-from utils import reshape
 import os
 import sqlite3
 from datetime import datetime
@@ -17,12 +13,15 @@ from matplotlib import rcParams
 from matplotlib import font_manager as fm
 import arabic_reshaper
 from bidi.algorithm import get_display
+
+# ✅ تعریف تابع reshape برای متن‌های فارسی
 def reshape(text):
     return get_display(arabic_reshaper.reshape(text))
 
 # ------------------------
 # تنظیم صفحه
 st.set_page_config(page_title="📊 درس‌بان | داشبورد تحلیلی کلاس", layout="wide")
+
 # تنظیم صفحه Streamlit
 # -------------------------
 # -------------------------
@@ -434,6 +433,7 @@ def edit_scores_for_student(username):
 # نمودار خطی پیشرفت برای یک دانش‌آموز و درس مشخص (با محور x راست‌چین شده)
 def show_student_line_chart(student_name, lesson):
     df_line = read_sql("SELECT id, نمره_شماره, نمره FROM scores WHERE نام_دانش‌آموز = ? AND درس = ? ORDER BY id", params=(student_name, lesson))
+
     if df_line.empty:
         st.info("برای این درس هنوز نمره‌ای ثبت نشده است.")
         return
@@ -444,9 +444,10 @@ def show_student_line_chart(student_name, lesson):
 
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(x_labels, y_values, marker="o", linewidth=2)
-    ax.set_title(f"روند نمرات {student_name} - درس {lesson}")
-    ax.set_xlabel("شماره نمره")
-    ax.set_ylabel("نمره")
+
+    ax.set_title(reshape(f"روند نمرات {student_name} - درس {lesson}"))
+    ax.set_xlabel(reshape("شماره نمره"))
+    ax.set_ylabel(reshape("نمره"))
 
     # معکوس محور x برای القای سمت راست شروع (RTL-like)
     try:
@@ -462,8 +463,12 @@ def show_student_line_chart(student_name, lesson):
     except Exception:
         pass
 
+    # ✅ اصلاح لیبل‌های محور x با reshape
+    ax.set_xticklabels([reshape(label.get_text()) for label in ax.get_xticklabels()])
+
     plt.tight_layout()
     st.pyplot(fig)
+
 
 # نمودار خطی میانگین کلاس برای یک درس (تاریخ/شماره نمره -> میانگین)
 def show_class_line_chart(teacher, lesson):
@@ -475,6 +480,7 @@ def show_class_line_chart(teacher, lesson):
         GROUP BY نمره_شماره
         ORDER BY MIN(id)
     """, params=(teacher, lesson))
+
     if df.empty:
         st.info("برای این درس هنوز نمره‌ای ثبت نشده است.")
         return
@@ -484,6 +490,7 @@ def show_class_line_chart(teacher, lesson):
 
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(x_labels, y_values, marker="o", linewidth=2)
+
     ax.set_title(reshape(f"روند میانگین کلاس - درس {lesson}"))
     ax.set_xlabel(reshape("شماره نمره"))
     ax.set_ylabel(reshape("میانگین نمره"))
@@ -499,9 +506,13 @@ def show_class_line_chart(teacher, lesson):
                 item.set_fontname(PREFERRED_FONT_FAMILY)
     except Exception:
         pass
-ax.set_xticklabels([reshape(label.get_text()) for label in ax.get_xticklabels()])
-plt.tight_layout()
-st.pyplot(fig)
+
+    # ✅ اصلاح لیبل‌های محور x با reshape
+    ax.set_xticklabels([reshape(label.get_text()) for label in ax.get_xticklabels()])
+
+    plt.tight_layout()
+    st.pyplot(fig)
+
 
 # رسم نمودار دایره‌ای وضعیت کلاس با legend (رنگ‌بندی بر اساس چهار سطح)
 def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضعیت کلاس"):
@@ -1040,6 +1051,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
