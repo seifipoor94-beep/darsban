@@ -514,26 +514,38 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
     if df.empty:
         st.info("اطلاعات نمرات موجود نیست.")
         return
+# جمع‌بندی وضعیت‌ها
+status_counts = {
+    "۱ - نیاز به تلاش بیشتر": 0,
+    "۲ - قابل قبول": 0,
+    "۳ - خوب": 0,
+    "۴ - خیلی خوب": 0
+}
 
-    # جمع‌بندی وضعیت‌ها
-    status_counts = {1: 0, 2: 0, 3: 0, 4: 0}
-    if selected_lesson:
-        for _, row in df.iterrows():
-            student_avg = row["میانگین_درس"]
-            class_avg_row = read_sql("SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?", params=(teacher, selected_lesson))
-            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
-            status = وضعیت_نمره‌ای(student_avg, class_avg)
-            status_counts[status] = status_counts.get(status, 0) + 1
-    else:
-        grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
-        for _, row in grouped.iterrows():
-            student_avg = row["میانگین_دانش‌آموز"]
-            class_avg_row = read_sql("SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ?", params=(teacher,))
-            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
-            status = وضعیت_نمره‌ای(student_avg, class_avg)
-            status_counts[status] = status_counts.get(status, 0) + 1
+if selected_lesson:
+    for _, row in df.iterrows():
+        student_avg = row["میانگین_درس"]
+        class_avg_row = read_sql(
+            "SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?",
+            params=(teacher, selected_lesson)
+        )
+        class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+        status = وضعیت_نمره‌ای(student_avg, class_avg)
+        status_counts[status] = status_counts.get(status, 0) + 1
+else:
+    grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
+    for _, row in grouped.iterrows():
+        student_avg = row["میانگین_دانش‌آموز"]
+        class_avg_row = read_sql(
+            "SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ?",
+            params=(teacher,)
+        )
+        class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+        status = وضعیت_نمره‌ای(student_avg, class_avg)
+        status_counts[status] = status_counts.get(status, 0) + 1
 
-   fig, ax = pie_chart_with_legend(status_counts, title=title)
+# ✅ تورفتگی درست و بدون خطا
+fig, ax = pie_chart_with_legend(status_counts, title=title)
 if fig is None:
     st.info("داده کافی برای نمودار وجود ندارد.")
     return
@@ -1042,6 +1054,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
