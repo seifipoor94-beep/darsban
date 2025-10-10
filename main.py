@@ -503,66 +503,73 @@ def show_class_line_chart(teacher, lesson):
     plt.tight_layout()
     st.pyplot(fig)
 
-
-# رسم نمودار دایره‌ای وضعیت کلاس با legend (رنگ‌بندی بر اساس چهار سطح)
 def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضعیت کلاس"):
     # استفاده از توابع کمکی: خواندن میانگین‌ها و تعیین وضعیت
     if selected_lesson:
-        df = read_sql("SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس FROM scores WHERE آموزگار = ? AND درس = ? GROUP BY نام_دانش‌آموز", params=(teacher, selected_lesson))
+        df = read_sql(
+            "SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس FROM scores WHERE آموزگار = ? AND درس = ? GROUP BY نام_دانش‌آموز",
+            params=(teacher, selected_lesson)
+        )
     else:
-        df = read_sql("SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_دانش‌آموز FROM scores WHERE آموزگار = ? GROUP BY نام_دانش‌آموز", params=(teacher,))
+        df = read_sql(
+            "SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_دانش‌آموز FROM scores WHERE آموزگار = ? GROUP BY نام_دانش‌آموز",
+            params=(teacher,)
+        )
+
     if df.empty:
         st.info("اطلاعات نمرات موجود نیست.")
         return
-# جمع‌بندی وضعیت‌ها
-status_counts = {
-    "۱ - نیاز به تلاش بیشتر": 0,
-    "۲ - قابل قبول": 0,
-    "۳ - خوب": 0,
-    "۴ - خیلی خوب": 0
-}
 
-if selected_lesson:
-    for _, row in df.iterrows():
-        student_avg = row["میانگین_درس"]
-        class_avg_row = read_sql(
-            "SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?",
-            params=(teacher, selected_lesson)
-        )
-        class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
-        status = وضعیت_نمره‌ای(student_avg, class_avg)
-        status_counts[status] = status_counts.get(status, 0) + 1
-else:
-    grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
-    for _, row in grouped.iterrows():
-        student_avg = row["میانگین_دانش‌آموز"]
-        class_avg_row = read_sql(
-            "SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ?",
-            params=(teacher,)
-        )
-        class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
-        status = وضعیت_نمره‌ای(student_avg, class_avg)
-        status_counts[status] = status_counts.get(status, 0) + 1
+    # جمع‌بندی وضعیت‌ها
+    status_counts = {
+        "۱ - نیاز به تلاش بیشتر": 0,
+        "۲ - قابل قبول": 0,
+        "۳ - خوب": 0,
+        "۴ - خیلی خوب": 0
+    }
 
-# ✅ تورفتگی درست و بدون خطا
-fig, ax = pie_chart_with_legend(status_counts, title=title)
-if fig is None:
-    st.info("داده کافی برای نمودار وجود ندارد.")
-    return
+    if selected_lesson:
+        for _, row in df.iterrows():
+            student_avg = row["میانگین_درس"]
+            class_avg_row = read_sql(
+                "SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ? AND درس = ?",
+                params=(teacher, selected_lesson)
+            )
+            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+            status = وضعیت_نمره‌ای(student_avg, class_avg)
+            status_counts[status] = status_counts.get(status, 0) + 1
+    else:
+        grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
+        for _, row in grouped.iterrows():
+            student_avg = row["میانگین_دانش‌آموز"]
+            class_avg_row = read_sql(
+                "SELECT AVG(نمره) as میانگین_کلاس FROM scores WHERE آموزگار = ?",
+                params=(teacher,)
+            )
+            class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
+            status = وضعیت_نمره‌ای(student_avg, class_avg)
+            status_counts[status] = status_counts.get(status, 0) + 1
 
-# نمایش نمودار و راهنمای رنگ به صورت خوانا
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.pyplot(fig)
-with col2:
-    st.markdown("### راهنمای رنگ")
-    st.markdown("<div style='display:flex;flex-direction:column;gap:6px'>"
-                "<div><span style='display:inline-block;width:16px;height:16px;background:#e74c3c;margin-left:6px;'></span> ۱ - نیاز به تلاش بیشتر</div>"
-                "<div><span style='display:inline-block;width:16px;height:16px;background:#e67e22;margin-left:6px;'></span> ۲ - قابل قبول</div>"
-                "<div><span style='display:inline-block;width:16px;height:16px;background:#2ecc71;margin-left:6px;'></span> ۳ - خوب</div>"
-                "<div><span style='display:inline-block;width:16px;height:16px;background:#3498db;margin-left:6px;'></span> ۴ - خیلی خوب</div>"
-                "</div>", unsafe_allow_html=True)
+    # ✅ تورفتگی درست و بدون خطا
+    fig, ax = pie_chart_with_legend(status_counts, title=title)
+    if fig is None:
+        st.info("داده کافی برای نمودار وجود ندارد.")
+        return
 
+    # نمایش نمودار و راهنمای رنگ
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.pyplot(fig)
+    with col2:
+        st.markdown("### راهنمای رنگ")
+        st.markdown("<div style='display:flex;flex-direction:column;gap:6px;text-align:right;font-family:Vazir;'>"
+                    "<div><span style='display:inline-block;width:16px;height:16px;background:#e74c3c;margin-left:6px;'></span> ۱ - نیاز به تلاش بیشتر</div>"
+                    "<div><span style='display:inline-block;width:16px;height:16px;background:#e67e22;margin-left:6px;'></span> ۲ - قابل قبول</div>"
+                    "<div><span style='display:inline-block;width:16px;height:16px;background:#2ecc71;margin-left:6px;'></span> ۳ - خوب</div>"
+                    "<div><span style='display:inline-block;width:16px;height:16px;background:#3498db;margin-left:6px;'></span> ۴ - خیلی خوب</div>"
+                    "</div>", unsafe_allow_html=True)
+
+# رسم نمودار دایره‌ای وضعیت کلاس با legend (رنگ‌بندی بر اساس چهار سطح)
 
 # آمار کلی کلاس با انتخاب درس برای آموزگار (شامل نمودار دایره‌ای و امکان دیدن نمودار خطی کلاس)
 def show_class_statistics_panel(username):
@@ -1054,6 +1061,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
