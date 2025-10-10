@@ -449,11 +449,6 @@ def show_student_line_chart(student_name, lesson):
     ax.set_xlabel(reshape("شماره نمره"))
     ax.set_ylabel(reshape("نمره"))
 
-    # معکوس محور x برای القای سمت راست شروع (RTL-like)
-    try:
-        ax.invert_xaxis()
-    except Exception:
-        pass
 
     # تنظیم فونت (اگر Vazir ثبت شده باشد matplotlib آن را می‌شناسد)
     try:
@@ -494,11 +489,6 @@ def show_class_line_chart(teacher, lesson):
     ax.set_title(reshape(f"روند میانگین کلاس - درس {lesson}"))
     ax.set_xlabel(reshape("شماره نمره"))
     ax.set_ylabel(reshape("میانگین نمره"))
-
-    try:
-        ax.invert_xaxis()
-    except Exception:
-        pass
 
     try:
         if _MATPLOTLIB_FONT_OK:
@@ -543,23 +533,24 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
             status = وضعیت_نمره‌ای(student_avg, class_avg)
             status_counts[status] = status_counts.get(status, 0) + 1
 
-    fig, ax = pie_chart_with_legend(status_counts, title=title)
-    if fig is None:
-        st.info("داده کافی برای نمودار وجود ندارد.")
-        return
+   fig, ax = pie_chart_with_legend(status_counts, title=title)
+if fig is None:
+    st.info("داده کافی برای نمودار وجود ندارد.")
+    return
 
-    # نمایش نمودار و راهنمای رنگ به صورت خوانا
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.pyplot(fig)
-    with col2:
-        st.markdown("### راهنمای رنگ")
-        st.markdown("<div style='display:flex;flex-direction:column;gap:6px'>"
-                    "<div><span style='display:inline-block;width:16px;height:16px;background:#e74c3c;margin-left:6px;'></span> نیاز به تلاش بیشتر</div>"
-                    "<div><span style='display:inline-block;width:16px;height:16px;background:#e67e22;margin-left:6px;'></span> قابل قبول</div>"
-                    "<div><span style='display:inline-block;width:16px;height:16px;background:#2ecc71;margin-left:6px;'></span> خوب</div>"
-                    "<div><span style='display:inline-block;width:16px;height:16px;background:#3498db;margin-left:6px;'></span> خیلی خوب</div>"
-                    "</div>", unsafe_allow_html=True)
+# نمایش نمودار و راهنمای رنگ به صورت خوانا
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.pyplot(fig)
+with col2:
+    st.markdown("### راهنمای رنگ")
+    st.markdown("<div style='display:flex;flex-direction:column;gap:6px'>"
+                "<div><span style='display:inline-block;width:16px;height:16px;background:#e74c3c;margin-left:6px;'></span> ۱ - نیاز به تلاش بیشتر</div>"
+                "<div><span style='display:inline-block;width:16px;height:16px;background:#e67e22;margin-left:6px;'></span> ۲ - قابل قبول</div>"
+                "<div><span style='display:inline-block;width:16px;height:16px;background:#2ecc71;margin-left:6px;'></span> ۳ - خوب</div>"
+                "<div><span style='display:inline-block;width:16px;height:16px;background:#3498db;margin-left:6px;'></span> ۴ - خیلی خوب</div>"
+                "</div>", unsafe_allow_html=True)
+
 
 # آمار کلی کلاس با انتخاب درس برای آموزگار (شامل نمودار دایره‌ای و امکان دیدن نمودار خطی کلاس)
 def show_class_statistics_panel(username):
@@ -1051,6 +1042,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
