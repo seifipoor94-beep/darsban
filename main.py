@@ -15,6 +15,10 @@ from fpdf import FPDF
 import jdatetime
 from matplotlib import rcParams
 from matplotlib import font_manager as fm
+import arabic_reshaper
+from bidi.algorithm import get_display
+def reshape(text):
+    return get_display(arabic_reshaper.reshape(text))
 
 # ------------------------
 # تنظیم صفحه
@@ -1036,6 +1040,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
