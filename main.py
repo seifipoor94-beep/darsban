@@ -575,6 +575,14 @@ def وضعیت_نمره‌ای(student_avg, class_avg):
         return 4  # خیلی خوب
 
 # ✅ تعریف متن وضعیت
+def متن_وضعیت(status_code):
+    return {
+        1: "نیاز به تلاش بیشتر",
+        2: "قابل قبول",
+        3: "خوب",
+        4: "خیلی خوب"
+    }.get(status_code, "نامشخص")
+
 
 # ✅ آمار کلی کلاس با نمودارها
 def show_class_statistics_panel(username):
@@ -1027,6 +1035,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
