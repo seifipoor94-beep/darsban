@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from fpdf import FPDF
 import jdatetime
+from matplotlib import rcParams
 
 # -------------------------
 # تنظیم فونت فارسی برای نمودارها
@@ -1041,6 +1042,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
