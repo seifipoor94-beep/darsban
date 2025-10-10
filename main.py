@@ -7,7 +7,6 @@ import sqlite3
 from datetime import datetime
 import io
 import traceback
-
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -15,16 +14,9 @@ from matplotlib import font_manager
 from fpdf import FPDF
 import jdatetime
 from matplotlib import rcParams
+from matplotlib import font_manager as fm
 
-# -------------------------
-# تنظیم فونت فارسی برای نمودارها
-font_path = "fonts/vazir.ttf"
-if os.path.exists(font_path):
-    font_prop = fm.FontProperties(fname=font_path)
-    rcParams['font.family'] = font_prop.get_name()
-else:
-    rcParams['font.family'] = 'DejaVu Sans'
-rcParams['axes.unicode_minus'] = False
+# ------------------------
 # تنظیم صفحه
 st.set_page_config(page_title="📊 درس‌بان | داشبورد تحلیلی کلاس", layout="wide")
 # تنظیم صفحه Streamlit
@@ -583,13 +575,6 @@ def وضعیت_نمره‌ای(student_avg, class_avg):
         return 4  # خیلی خوب
 
 # ✅ تعریف متن وضعیت
-def متن_وضعیت(status_code):
-    return {
-        1: "نیاز به تلاش بیشتر",
-        2: "قابل قبول",
-        3: "خوب",
-        4: "خیلی خوب"
-    }.get(status_code, "نامشخص")
 
 # ✅ آمار کلی کلاس با نمودارها
 def show_class_statistics_panel(username):
@@ -1042,6 +1027,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
