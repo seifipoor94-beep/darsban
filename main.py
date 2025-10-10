@@ -776,50 +776,89 @@ def show_teacher_statistics_by_admin(school):
 
 # پنل مدیر سامانه (Super Admin)
 def show_superadmin_panel():
-    st.title("🛠️ پنل مدیر سامانه")
-    st.markdown("در این بخش می‌توانید کاربران جدید ایجاد کنید و اطلاعات مدارس را مدیریت نمایید.")
+    st.header("🛠 پنل مدیر سامانه")
+    st.write("در این بخش می‌توانید کاربران سامانه را مدیریت کنید.")
 
-    # ثبت کاربر جدید
     with st.expander("➕ ثبت کاربر جدید"):
-        username = st.text_input("نام کاربری", key="super_user_username")
-        full_name = st.text_input("نام کامل کاربر", key="super_user_fullname")
-        password = st.text_input("رمز عبور", type="password", key="super_user_pwd")
-        role = st.selectbox("نقش کاربر", ["مدیر مدرسه", "معاون", "آموزگار"], key="super_user_role")
-        school = st.text_input("نام مدرسه", key="super_user_school")
-        if st.button("ثبت کاربر جدید", key="super_user_submit"):
-            if not username or not password:
-                st.error("نام کاربری و رمز عبور الزامی است.")
-            else:
-                try:
-                    execute_sql("INSERT INTO users (نام_کاربر, نام_کامل, رمز_عبور, نقش, مدرسه) VALUES (?, ?, ?, ?, ?)",
-                                (username, full_name, password, role, school))
-                    st.success("✅ کاربر جدید با موفقیت ثبت شد.")
+        with st.form("register_user_form"):
+            username = st.text_input("نام کاربری", key="reg_username")
+            password = st.text_input("رمز عبور", type="password", key="reg_password")
+            school = st.text_input("نام مدرسه", key="reg_school")
+            role = st.selectbox("نقش کاربر", ["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"], key="reg_role")
+            expiry_date = st.date_input("تاریخ انقضا", key="reg_expiry")
+            submitted = st.form_submit_button("ثبت کاربر")
+
+            if submitted:
+                if not username or not password:
+                    st.error("نام کاربری و رمز عبور را وارد کنید.")
+                else:
+                    expiry_str = expiry_date.strftime("%Y/%m/%d")
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO users
+                        (نام_کاربر, رمز_عبور, نقش, مدرسه, وضعیت, تاریخ_انقضا)
+                        VALUES (?, ?, ?, ?, 'فعال', ?)
+                    """, (username, password, role, school, expiry_str))
+                    conn.commit()
+                    st.success(f"✅ کاربر {username} با نقش {role} ثبت شد.")
                     st.rerun()
 
-                except Exception as e:
-                    st.error("خطا در ثبت کاربر:")
-                    st.text(str(e))
-
-    # نمایش فهرست کاربران موجود
-    st.markdown("### 👥 فهرست کاربران")
-    df = read_sql("select نام_کاربر, نام_کامل, نقش, مدرسه FROM users")
+    st.subheader("🧑‍🏫 فهرست کاربران")
+    df = pd.read_sql_query("SELECT * FROM users", conn)
     if df.empty:
-        st.info("هیچ کاربری ثبت نشده است.")
-    else:
-        st.dataframe(df)
+        st.info("هنوز هیچ کاربری ثبت نشده است.")
+        return
+    st.dataframe(df)
 
-    # حذف کاربر
-    with st.expander("🗑 حذف کاربر"):
-        selected = st.selectbox("انتخاب کاربر برای حذف", df["نام_کاربر"].tolist() if not df.empty else [], key="super_user_delete_select")
-        if st.button("حذف کاربر", key="super_user_delete_btn"):
-            try:
-                execute_sql("DELETE FROM users WHERE نام_کاربر = ?", (selected,))
-                st.warning(f"❌ کاربر {selected} حذف شد.")
-                st.rerun()
+    selected_user = st.selectbox("انتخاب کاربر برای ویرایش یا حذف", df["نام_کاربر"], key="sel_user")
+    user_row = df[df["نام_کاربر"] == selected_user].iloc[0]
 
-            except Exception as e:
-                st.error("خطا در حذف کاربر:")
-                st.text(str(e))
+    new_password = st.text_input("رمز جدید", value=user_row["رمز_عبور"], key="edit_pwd")
+    roles_list = ["آموزگار", "معاون", "مدیر مدرسه", "مدیر سامانه"]
+    new_role = st.selectbox("نقش جدید", roles_list, index=roles_list.index(user_row["نقش"]), key="edit_role")
+    new_school = st.text_input("مدرسه جدید", value=user_row["مدرسه"], key="edit_school")
+    new_status = st.radio("وضعیت جدید", ["فعال", "مسدود"], index=["فعال", "مسدود"].index(user_row["وضعیت"]), key="edit_status")
+    try:
+        new_expiry = st.date_input("تاریخ جدید انقضا", value=datetime.strptime(user_row["تاریخ_انقضا"], "%Y/%m/%d"), key="edit_expiry")
+    except Exception:
+        new_expiry = st.date_input("تاریخ جدید انقضا", key="edit_expiry_fallback")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾 ثبت تغییرات", key="save_user_changes"):
+            expiry_str = new_expiry.strftime("%Y/%m/%d")
+            cursor.execute("""
+                UPDATE users
+                SET رمز_عبور = ?, نقش = ?, مدرسه = ?, وضعیت = ?, تاریخ_انقضا = ?
+                WHERE نام_کاربر = ?
+            """, (new_password, new_role, new_school, new_status, expiry_str, selected_user))
+            conn.commit()
+            st.success("✅ اطلاعات کاربر به‌روزرسانی شد.")
+            st.rerun()
+    with col2:
+        if st.button("🗑 حذف کاربر", key="delete_user_btn"):
+            cursor.execute("DELETE FROM users WHERE نام_کاربر = ?", (selected_user,))
+            conn.commit()
+            st.warning(f"❌ کاربر {selected_user} حذف شد.")
+            st.rerun()
+
+    st.subheader("🔐 تغییر رمز مدیر سامانه")
+    current_password = st.text_input("رمز فعلی", type="password", key="admin_current")
+    new_password_admin = st.text_input("رمز جدید", type="password", key="admin_new")
+    confirm_password = st.text_input("تکرار رمز جدید", type="password", key="admin_confirm")
+
+    if st.button("ثبت تغییر رمز", key="admin_change_btn"):
+        cursor.execute("SELECT * FROM users WHERE نام_کاربر = ? AND رمز_عبور = ?", ("admin", current_password))
+        result = cursor.fetchone()
+        if not result:
+            st.error("❌ رمز فعلی اشتباه است.")
+        elif new_password_admin != confirm_password:
+            st.error("❌ رمز جدید با تکرار آن مطابقت ندارد.")
+        elif len(new_password_admin) < 4:
+            st.warning("⚠️ رمز جدید باید حداقل ۴ حرف باشد.")
+        else:
+            cursor.execute("UPDATE users SET رمز_عبور = ? WHERE نام_کاربر = ?", (new_password_admin, "admin"))
+            conn.commit()
+            st.success("✅ رمز مدیر سامانه تغییر یافت.")
 
 
 # پنل مدیر مدرسه
@@ -1001,6 +1040,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
