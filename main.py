@@ -939,6 +939,23 @@ def show_student_panel(username):
 
 
 # ------------------------------
+ssion_state.school = ""
+
+# نوار کناری: وضعیت و خروج
+with st.sidebar:
+    st.markdown("### وضعیت ورود")
+    if st.session_state.logged_in:
+        st.write(f"👤 کاربر: **{st.session_state.username}**")
+        st.write(f"🔖 نقش: **{st.session_state.role}**")
+        st.write(f"🏫 مدرسه: **{st.session_state.school}**")
+        if st.button("🚪 خروج"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.session_state.role = ""
+            st.session_state.school = ""
+            st.rerun()
+    else:
+        st.write("شما وارد نشده‌اید.")
 # ------------------------------
 # صفحه ورود اصلی
 # ------------------------------
@@ -984,6 +1001,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
