@@ -480,9 +480,10 @@ def show_class_line_chart(teacher, lesson):
 
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(x_labels, y_values, marker="o", linewidth=2)
-    ax.set_title(f"روند میانگین کلاس - درس {lesson}")
-    ax.set_xlabel("شماره نمره")
-    ax.set_ylabel("میانگین نمره")
+    ax.set_title(reshape(f"روند میانگین کلاس - درس {lesson}"))
+    ax.set_xlabel(reshape("شماره نمره"))
+    ax.set_ylabel(reshape("میانگین نمره"))
+
     try:
         ax.invert_xaxis()
     except Exception:
@@ -494,9 +495,9 @@ def show_class_line_chart(teacher, lesson):
                 item.set_fontname(PREFERRED_FONT_FAMILY)
     except Exception:
         pass
-
-    plt.tight_layout()
-    st.pyplot(fig)
+ax.set_xticklabels([reshape(label.get_text()) for label in ax.get_xticklabels()])
+plt.tight_layout()
+st.pyplot(fig)
 
 # رسم نمودار دایره‌ای وضعیت کلاس با legend (رنگ‌بندی بر اساس چهار سطح)
 def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضعیت کلاس"):
@@ -1035,6 +1036,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
