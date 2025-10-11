@@ -275,13 +275,17 @@ def execute_sql(query, params=None):
 # رنگ‌بندی مطابق چهار سطح: قرمز، نارنجی، سبز، آبی
 # برمی‌گرداند: (fig, ax) برای نمایش با st.pyplot
 # -------------------------
-def متن_وضعیت(status_code):
-    return {
-        1: "۱ - نیاز به تلاش بیشتر",
-        2: "۲ - قابل قبول",
-        3: "۳ - خوب",
-        4: "۴ - خیلی خوب"
-    }.get(status_code, "نامشخص")
+def pie_chart_with_legend(status_counts, title="توزیع وضعیت"):
+    """
+    status_counts: dict keyed by وضعیت متنی => count
+    returns matplotlib fig, ax
+    """
+    labels_raw = [
+        "۱ - نیاز به تلاش بیشتر",
+        "۲ - قابل قبول",
+        "۳ - خوب",
+        "۴ - خیلی خوب"
+    ]
 
     labels = [reshape(label) for label in labels_raw]
     colors = ["#e74c3c", "#e67e22", "#2ecc71", "#3498db"]
@@ -1086,6 +1090,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
