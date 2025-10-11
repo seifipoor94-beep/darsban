@@ -277,19 +277,43 @@ def execute_sql(query, params=None):
 # -------------------------
 def pie_chart_with_legend(status_counts, title="توزیع وضعیت"):
     """
-    status_counts: dict keyed by 1..4 => count
+    status_counts: dict keyed by وضعیت متنی => count
     returns matplotlib fig, ax
     """
-    labels = ["نیاز به تلاش بیشتر", "قابل قبول", "خوب", "خیلی خوب"]
-    colors = ["#e74c3c", "#e67e22", "#2ecc71", "#3498db"]  # قرمز، نارنجی، سبز، آبی
-    sizes = [status_counts.get(i, 0) for i in range(1, 5)]
+    labels_raw = [
+        "۱ - نیاز به تلاش بیشتر",
+        "۲ - قابل قبول",
+        "۳ - خوب",
+        "۴ - خیلی خوب"
+    ]
+    labels = [reshape(label) for label in labels_raw]
+    colors = ["#e74c3c", "#e67e22", "#2ecc71", "#3498db"]
+    sizes = [status_counts.get(label, 0) for label in labels_raw]
+
     if sum(sizes) == 0:
         return None, None
+
     fig, ax = plt.subplots(figsize=(5, 4))
-    wedges, texts, autotexts = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors, textprops={'fontsize': 10})
-    ax.set_title(title)
-    # Legend کنار نمودار (راست)
-    ax.legend(wedges, labels, title="وضعیت", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+    wedges, texts, autotexts = ax.pie(
+        sizes,
+        labels=labels,
+        autopct="%1.1f%%",
+        startangle=90,
+        colors=colors,
+        textprops={'fontsize': 10}
+    )
+
+    ax.set_title(reshape(title))
+
+    # ✅ تنظیم فونت فارسی روی عنوان و لیبل‌ها
+    try:
+        if _MATPLOTLIB_FONT_OK:
+            ax.set_title(ax.get_title(), fontname=PREFERRED_FONT_FAMILY)
+            for text in texts + autotexts:
+                text.set_fontname(PREFERRED_FONT_FAMILY)
+    except Exception:
+        pass
+
     plt.tight_layout()
     return fig, ax
 
@@ -1061,6 +1085,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
