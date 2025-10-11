@@ -37,7 +37,7 @@ if "role" not in st.session_state:
 # مسیرها
 # -------------------------
 # اگر روی Render/Heroku/... اجرا می‌کنی و متغیر DATA_DIR را تنظیم کردی، از آن استفاده شود.
-DATA_DIR = os.environ.get("DATA_DIR", "/tmp/app_data")
+DATA_DIR = os.path.join(os.getcwd(), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 FONTS_DIR = os.path.join(os.getcwd(), "fonts")  # انتظار میره Vazir.ttf اینجا باشه
@@ -1085,6 +1085,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
