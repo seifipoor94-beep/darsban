@@ -561,7 +561,9 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
             )
             class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
             status = وضعیت_نمره‌ای(student_avg, class_avg)
-            status_counts[status] = status_counts.get(status, 0) + 1
+            status_text = متن_وضعیت(status)
+            status_counts[status_text] = status_counts.get(status_text, 0) + 1
+
     else:
         grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
         for _, row in grouped.iterrows():
@@ -572,7 +574,9 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
             )
             class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
             status = وضعیت_نمره‌ای(student_avg, class_avg)
-            status_counts[status] = status_counts.get(status, 0) + 1
+            status_text = متن_وضعیت(status)
+            status_counts[status_text] = status_counts.get(status_text, 0) + 1
+
 
     # ✅ تورفتگی درست و بدون خطا
     fig, ax = pie_chart_with_legend(status_counts, title=title)
@@ -1085,6 +1089,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
