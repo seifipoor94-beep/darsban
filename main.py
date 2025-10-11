@@ -545,9 +545,8 @@ def show_class_line_chart(teacher, lesson):
 
     plt.tight_layout()
     st.pyplot(fig)
-
 def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضعیت کلاس"):
-    # استفاده از توابع کمکی: خواندن میانگین‌ها و تعیین وضعیت
+    # خواندن میانگین‌ها
     if selected_lesson:
         df = read_sql(
             "SELECT نام_دانش‌آموز, AVG(نمره) as میانگین_درس FROM scores WHERE آموزگار = ? AND درس = ? GROUP BY نام_دانش‌آموز",
@@ -563,13 +562,8 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
         st.info("اطلاعات نمرات موجود نیست.")
         return
 
-    # جمع‌بندی وضعیت‌ها
-    status_counts = {
-        "۱ - نیاز به تلاش بیشتر": 0,
-        "۲ - قابل قبول": 0,
-        "۳ - خوب": 0,
-        "۴ - خیلی خوب": 0
-    }
+    # 🔹 دیکشنری عددی برای وضعیت‌ها
+    status_counts = {1: 0, 2: 0, 3: 0, 4: 0}
 
     if selected_lesson:
         for _, row in df.iterrows():
@@ -580,8 +574,7 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
             )
             class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
             status = وضعیت_نمره‌ای(student_avg, class_avg)
-            status_text = متن_وضعیت(status)
-            status_counts[status_text] = status_counts.get(status_text, 0) + 1
+            status_counts[status] = status_counts.get(status, 0) + 1
 
     else:
         grouped = df.groupby("نام_دانش‌آموز")["میانگین_دانش‌آموز"].mean().reset_index()
@@ -593,8 +586,38 @@ def draw_class_pie_chart(teacher, selected_lesson=None, title="توزیع وضع
             )
             class_avg = class_avg_row.iloc[0]["میانگین_کلاس"] if not class_avg_row.empty else student_avg
             status = وضعیت_نمره‌ای(student_avg, class_avg)
-            status_text = متن_وضعیت(status)
-            status_counts[status_text] = status_counts.get(status_text, 0) + 1
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+    # 🔹 فیلتر کردن داده‌ها و رسم نمودار
+    filtered = {k: v for k, v in status_counts.items() if v > 0}
+    if not filtered:
+        st.warning("داده کافی برای نمایش نمودار وجود ندارد.")
+        return
+
+    fig, ax = pie_chart_with_legend(filtered, title=title)
+
+    if fig is None:
+        st.warning("خطا در رسم نمودار.")
+        return
+
+    # 🔹 نمایش نمودار و راهنمای رنگ
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.pyplot(fig)
+    with col2:
+        st.markdown("### 🎨 راهنمای رنگ")
+        st.markdown(
+            """
+            <div style='display:flex;flex-direction:column;gap:6px;font-size:14px;'>
+                <div><span style='display:inline-block;width:14px;height:14px;background:#e74c3c;margin-left:6px;border-radius:3px;'></span> نیاز به تلاش بیشتر</div>
+                <div><span style='display:inline-block;width:14px;height:14px;background:#e67e22;margin-left:6px;border-radius:3px;'></span> قابل قبول</div>
+                <div><span style='display:inline-block;width:14px;height:14px;background:#2ecc71;margin-left:6px;border-radius:3px;'></span> خوب</div>
+                <div><span style='display:inline-block;width:14px;height:14px;background:#3498db;margin-left:6px;border-radius:3px;'></span> خیلی خوب</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
 
 
     # ✅ تورفتگی درست و بدون خطا
@@ -1108,6 +1131,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
