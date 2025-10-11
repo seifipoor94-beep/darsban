@@ -275,48 +275,66 @@ def execute_sql(query, params=None):
 # رنگ‌بندی مطابق چهار سطح: قرمز، نارنجی، سبز، آبی
 # برمی‌گرداند: (fig, ax) برای نمایش با st.pyplot
 # -------------------------
-def pie_chart_with_legend(status_counts, title="توزیع وضعیت"):
-    """
-    status_counts: dict keyed by وضعیت متنی => count
-    returns matplotlib fig, ax
-    """
-    labels_raw = [
-        "۱ - نیاز به تلاش بیشتر",
-        "۲ - قابل قبول",
-        "۳ - خوب",
-        "۴ - خیلی خوب"
-    ]
+# ------------------------------
+# تابع رسم نمودار دایره‌ای با legend و رنگ‌بندی چهار سطحی
+# ------------------------------
+import matplotlib.pyplot as plt
 
-    labels = [reshape(label) for label in labels_raw]
-    colors = ["#e74c3c", "#e67e22", "#2ecc71", "#3498db"]
-    sizes = [status_counts.get(label, 0) for label in labels_raw]
+def pie_chart_with_legend(status_counts, title="نمودار وضعیت"):
+    try:
+        # حذف صفرهای اضافی (در صورتی که بعضی سطح‌ها داده نداشته باشن)
+        filtered = {k: v for k, v in status_counts.items() if v > 0}
+        if not filtered:
+            return None, None  # یعنی داده‌ای برای نمایش وجود ندارد
 
-    if sum(sizes) == 0:
+        labels_raw = {
+            1: "نیاز به تلاش بیشتر",
+            2: "قابل قبول",
+            3: "خوب",
+            4: "خیلی خوب",
+        }
+
+        colors = {
+            1: "#e74c3c",  # قرمز
+            2: "#e67e22",  # نارنجی
+            3: "#2ecc71",  # سبز
+            4: "#3498db",  # آبی
+        }
+
+        # استخراج مقادیر و برچسب‌ها فقط برای مواردی که داده دارند
+        labels = [labels_raw[k] for k in filtered.keys()]
+        values = [filtered[k] for k in filtered.keys()]
+        color_list = [colors[k] for k in filtered.keys()]
+
+        # رسم نمودار
+        fig, ax = plt.subplots(figsize=(5, 5))
+        wedges, texts, autotexts = ax.pie(
+            values,
+            labels=labels,
+            autopct="%1.0f%%",
+            startangle=90,
+            colors=color_list,
+            textprops={"fontsize": 10, "color": "black"},
+        )
+
+        ax.set_title(title, fontsize=12, fontname="Vazir")
+
+        # فونت فارسی برای برچسب‌ها
+        for t in texts + autotexts:
+            try:
+                t.set_fontname("Vazir")
+            except Exception:
+                pass
+
+        plt.tight_layout()
+        return fig, ax
+
+    except Exception as e:
+        import traceback
+        print("خطا در رسم نمودار:", e)
+        print(traceback.format_exc())
         return None, None
 
-    fig, ax = plt.subplots(figsize=(5, 4))
-    wedges, texts, autotexts = ax.pie(
-        sizes,
-        labels=labels,
-        autopct="%1.1f%%",
-        startangle=90,
-        colors=colors,
-        textprops={'fontsize': 10}
-    )
-
-    ax.set_title(reshape(title))
-
-    # ✅ تنظیم فونت فارسی روی عنوان و لیبل‌ها
-    try:
-        if _MATPLOTLIB_FONT_OK:
-            ax.set_title(ax.get_title(), fontname=PREFERRED_FONT_FAMILY)
-            for text in texts + autotexts:
-                text.set_fontname(PREFERRED_FONT_FAMILY)
-    except Exception:
-        pass
-
-    plt.tight_layout()
-    return fig, ax
 
 # -------------------------
 # آماده: بخش ۱ کامل شد.
@@ -1090,6 +1108,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
