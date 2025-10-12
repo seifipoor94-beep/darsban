@@ -821,15 +821,22 @@ def show_teacher_statistics_by_admin(school):
 unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
 selected_teacher = st.selectbox(
     "انتخاب آموزگار برای مشاهده آمار:",
-    teachers_df["نام_کاربر"].unique(),
-    key=unique_key
-)
-
+      # 🔹 انتخاب آموزگار برای جزئیات (اصلاح کلید تکراری)
+    unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
+    selected_teacher = st.selectbox(
+        "انتخاب آموزگار برای مشاهده آمار:",
+        teachers_df["نام_کاربر"].unique(),
+        key=unique_key
+    )
 
     # تعداد دانش‌آموزان آن آموزگار
-    student_count_df = read_sql("SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?", params=(selected_teacher,))
+    student_count_df = read_sql(
+        "SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?",
+        params=(selected_teacher,)
+    )
     total_students = int(student_count_df.iloc[0]["تعداد"]) if not student_count_df.empty else 0
     st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
+
 
     # دروس آن آموزگار
     lessons_df = read_sql("SELECT DISTINCT درس FROM scores WHERE آموزگار = ?", params=(selected_teacher,))
@@ -1028,5 +1035,6 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
