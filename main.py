@@ -5,6 +5,7 @@ from datetime import datetime
 import io
 import traceback
 import tempfile
+import uuid  # برای تولید کلید منحصربه‌فرد در ویجت‌ها
 
 import pandas as pd
 import streamlit as st
@@ -816,7 +817,14 @@ def show_teacher_statistics_by_admin(school):
         st.write(teachers_df.head())
 
     # انتخاب آموزگار برای جزئیات
-    selected_teacher = st.selectbox("انتخاب آموزگار برای مشاهده آمار:", teachers_df["نام_کاربر"].unique(), key=f"teach_stat_{school}")
+ # 🔹 انتخاب آموزگار برای جزئیات (اصلاح کلید تکراری)
+unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
+selected_teacher = st.selectbox(
+    "انتخاب آموزگار برای مشاهده آمار:",
+    teachers_df["نام_کاربر"].unique(),
+    key=unique_key
+)
+
 
     # تعداد دانش‌آموزان آن آموزگار
     student_count_df = read_sql("SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?", params=(selected_teacher,))
@@ -1020,4 +1028,5 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
