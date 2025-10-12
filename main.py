@@ -821,7 +821,7 @@ def show_teacher_statistics_by_admin(school):
 unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
 selected_teacher = st.selectbox(
     "انتخاب آموزگار برای مشاهده آمار:",
-      # 🔹 انتخاب آموزگار برای جزئیات (اصلاح کلید تکراری)
+        # 🔹 انتخاب آموزگار برای جزئیات (اصلاح کلید تکراری)
     unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
     selected_teacher = st.selectbox(
         "انتخاب آموزگار برای مشاهده آمار:",
@@ -1035,6 +1035,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
