@@ -500,116 +500,183 @@ def build_student_report_pdf(student_name, rows, school="", student_class="", is
 # پنل‌ها و توابع قبلی (ثابت نگه داشته شده، تنها بهبود ظاهری در پنل دانش‌آموز)
 def register_student_form(username):
     st.subheader("➕ ثبت دانش‌آموز جدید")
+
     name = st.text_input("نام دانش‌آموز", key=f"std_name_{username}")
     username_std = st.text_input("نام کاربری دانش‌آموز", key=f"std_user_{username}")
     password_std = st.text_input("رمز دانش‌آموز", type="password", key=f"std_pwd_{username}")
     class_name = st.text_input("کلاس", key=f"std_class_{username}")
+
     if st.button("ثبت", key=f"register_student_{username}"):
         if not name or not username_std:
             st.error("نام و نام کاربری دانش‌آموز را وارد کنید.")
             return
+
         today = datetime.today().strftime("%Y/%m/%d")
+
         try:
-            execute_sql("INSERT INTO students (آموزگار, نام_دانش‌آموز, نام_کاربری, رمز_دانش‌آموز, کلاس, تاریخ_ثبت) VALUES (?, ?, ?, ?, ?, ?)",
-                        (username, name, username_std, password_std, class_name, today))
+            supabase.table("students").insert({
+                "آموزگار": username,
+                "نام_دانش‌آموز": name,
+                "نام_کاربری": username_std,
+                "رمز_دانش‌آموز": password_std,
+                "کلاس": class_name,
+                "تاریخ_ثبت": today
+            }).execute()
+
             st.success("✅ دانش‌آموز با موفقیت ثبت شد.")
             st.rerun()
+
         except Exception as e:
             st.error("خطا در ثبت دانش‌آموز:")
             st.text(str(e))
 
+
 def edit_or_delete_student(username):
     st.subheader("✏️ ویرایش / حذف دانش‌آموز")
-    student_df = read_sql("SELECT * FROM students WHERE آموزگار = ?", params=(username,))
+
+    response = supabase.table("students").select("*").eq("آموزگار", username).execute()
+    student_df = pd.DataFrame(response.data)
+
     if student_df.empty:
         st.info("هیچ دانش‌آموزی ثبت نشده است.")
         return
+
     selected = st.selectbox("انتخاب دانش‌آموز برای ویرایش:", student_df["نام_دانش‌آموز"].unique(), key=f"edit_std_select_{username}")
     row = student_df[student_df["نام_دانش‌آموز"] == selected].iloc[0]
+
     new_name = st.text_input("نام دانش‌آموز", value=row["نام_دانش‌آموز"], key=f"edit_name_{username}")
     new_username = st.text_input("نام کاربری دانش‌آموز", value=row["نام_کاربری"], key=f"edit_usr_{username}")
     new_pwd = st.text_input("رمز دانش‌آموز", value=row["رمز_دانش‌آموز"], key=f"edit_pwd_std_{username}")
     new_class = st.text_input("کلاس", value=row["کلاس"], key=f"edit_class_{username}")
+
     col1, col2 = st.columns(2)
+
     with col1:
         if st.button("💾 ذخیره تغییرات دانش‌آموز", key=f"save_std_{username}"):
             try:
-                execute_sql("UPDATE students SET نام_دانش‌آموز = ?, نام_کاربری = ?, رمز_دانش‌آموز = ?, کلاس = ? WHERE id = ?",
-                            (new_name, new_username, new_pwd, new_class, row["id"]))
+                supabase.table("students").update({
+                    "نام_دانش‌آموز": new_name,
+                    "نام_کاربری": new_username,
+                    "رمز_دانش‌آموز": new_pwd,
+                    "کلاس": new_class
+                }).eq("id", row["id"]).execute()
+
                 st.success("✅ اطلاعات دانش‌آموز به‌روزرسانی شد.")
                 st.rerun()
+
             except Exception as e:
                 st.error("خطا در ذخیره تغییرات:")
                 st.text(str(e))
+
     with col2:
         if st.button("🗑 حذف دانش‌آموز", key=f"del_std_{username}"):
             try:
-                execute_sql("DELETE FROM scores WHERE نام_دانش‌آموز = ?", (row["نام_دانش‌آموز"],))
-                execute_sql("DELETE FROM students WHERE id = ?", (row["id"],))
+                supabase.table("scores").delete().eq("نام_دانش‌آموز", row["نام_دانش‌آموز"]).execute()
+                supabase.table("students").delete().eq("id", row["id"]).execute()
+
                 st.warning("❌ دانش‌آموز و نمرات مربوطه حذف شدند.")
                 st.rerun()
+
             except Exception as e:
                 st.error("خطا در حذف دانش‌آموز:")
                 st.text(str(e))
-
 def show_score_entry_panel(username):
     st.subheader("📌 ثبت نمره جدید")
-    student_df = read_sql("SELECT نام_دانش‌آموز FROM students WHERE آموزگار = ?", params=(username,))
+
+    # دریافت لیست دانش‌آموزان از Supabase
+    response = supabase.table("students").select("نام_دانش‌آموز").eq("آموزگار", username).execute()
+    student_df = pd.DataFrame(response.data)
+
     if student_df.empty:
         st.info("هیچ دانش‌آموزی ثبت نشده است.")
         return
+
     student_name = st.selectbox("انتخاب دانش‌آموز:", student_df["نام_دانش‌آموز"].unique(), key=f"score_student_{username}")
     lesson = st.text_input("نام درس", key=f"score_lesson_{username}")
     score_number = st.text_input("شماره نمره (مثلاً نمره اول، دوم...)", key=f"score_num_{username}")
     score_value = st.number_input("نمره", min_value=0, max_value=20, step=1, key=f"score_value_{username}")
+
     if st.button("ثبت نمره", key=f"submit_score_{username}"):
         if not lesson or not score_number:
             st.error("نام درس و شماره نمره را وارد کنید.")
             return
+
         today = datetime.today().strftime("%Y/%m/%d")
+
         try:
-            execute_sql("INSERT INTO scores (آموزگار, نام_دانش‌آموز, درس, نمره_شماره, نمره, تاریخ) VALUES (?, ?, ?, ?, ?, ?)",
-                        (username, student_name, lesson, score_number, score_value, today))
+            supabase.table("scores").insert({
+                "آموزگار": username,
+                "نام_دانش‌آموز": student_name,
+                "درس": lesson,
+                "نمره_شماره": score_number,
+                "نمره": score_value,
+                "تاریخ": today
+            }).execute()
+
             st.success("✅ نمره ثبت شد.")
             st.rerun()
+
         except Exception as e:
             st.error("خطا در ثبت نمره:")
             st.text(str(e))
 
 def edit_scores_for_student(username):
     st.subheader("✏️ ویرایش / حذف نمرات دانش‌آموز")
-    student_df = read_sql("SELECT نام_دانش‌آموز FROM students WHERE آموزگار = ?", params=(username,))
+
+    # دریافت لیست دانش‌آموزان از Supabase
+    response_students = supabase.table("students").select("نام_دانش‌آموز").eq("آموزگار", username).execute()
+    student_df = pd.DataFrame(response_students.data)
+
     if student_df.empty:
         st.info("هیچ دانش‌آموزی ثبت نشده است.")
         return
+
     student_name = st.selectbox("انتخاب دانش‌آموز:", student_df["نام_دانش‌آموز"].unique(), key=f"edit_score_student_{username}")
-    scores_df = read_sql("SELECT * FROM scores WHERE نام_دانش‌آموز = ? AND آموزگار = ?", params=(student_name, username))
+
+    # دریافت نمرات دانش‌آموز از Supabase
+    response_scores = supabase.table("scores").select("*").eq("نام_دانش‌آموز", student_name).eq("آموزگار", username).execute()
+    scores_df = pd.DataFrame(response_scores.data)
+
     if scores_df.empty:
         st.info("برای این دانش‌آموز هنوز نمره‌ای ثبت نشده است.")
         return
+
     st.markdown("### فهرست نمرات")
     st.dataframe(scores_df[["id", "درس", "نمره_شماره", "نمره", "تاریخ"]].set_index("id"))
+
     selected_id = st.selectbox("انتخاب ردیف (id) برای ویرایش/حذف:", scores_df["id"].tolist(), key=f"sel_score_id_{username}")
     sel_row = scores_df[scores_df["id"] == selected_id].iloc[0]
+
     new_lesson = st.text_input("درس", value=sel_row["درس"], key=f"edit_score_lesson_{username}")
     new_num = st.text_input("شماره نمره", value=sel_row["نمره_شماره"], key=f"edit_score_num_{username}")
     new_val = st.number_input("نمره", min_value=0, max_value=20, value=int(sel_row["نمره"]), key=f"edit_score_val_{username}")
+
     col1, col2 = st.columns(2)
+
     with col1:
         if st.button("💾 ذخیره تغییرات نمره", key=f"save_score_{username}"):
             try:
-                execute_sql("UPDATE scores SET درس = ?, نمره_شماره = ?, نمره = ? WHERE id = ?", (new_lesson, new_num, new_val, selected_id))
+                supabase.table("scores").update({
+                    "درس": new_lesson,
+                    "نمره_شماره": new_num,
+                    "نمره": new_val
+                }).eq("id", selected_id).execute()
+
                 st.success("✅ نمره به‌روزرسانی شد.")
                 st.rerun()
+
             except Exception as e:
                 st.error("خطا در به‌روزرسانی نمره:")
                 st.text(str(e))
+
     with col2:
         if st.button("🗑 حذف نمره", key=f"del_score_{username}"):
             try:
-                execute_sql("DELETE FROM scores WHERE id = ?", (selected_id,))
+                supabase.table("scores").delete().eq("id", selected_id).execute()
+
                 st.warning("❌ نمره حذف شد.")
                 st.rerun()
+
             except Exception as e:
                 st.error("خطا در حذف نمره:")
                 st.text(str(e))
@@ -1046,6 +1113,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
