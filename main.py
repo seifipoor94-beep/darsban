@@ -826,12 +826,12 @@ selected_teacher = st.selectbox(
 
 
     # تعداد دانش‌آموزان آن آموزگار
-    student_count_df = read_sql(
-        "SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?",
-        params=(selected_teacher,)
-    )
-    total_students = int(student_count_df.iloc[0]["تعداد"]) if not student_count_df.empty else 0
-    st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
+student_count_df = read_sql(
+    "SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?",
+    params=(selected_teacher,)
+)
+total_students = int(student_count_df.iloc[0]["تعداد"]) if not student_count_df.empty else 0
+st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
 
 
     # دروس آن آموزگار
@@ -1031,6 +1031,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
