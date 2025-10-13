@@ -814,7 +814,7 @@ def show_teacher_statistics_by_admin(school):
     """نمایش آمار آموزگاران برای مدیر یا معاون مدرسه"""
     st.subheader(f"📊 آمار آموزگاران مدرسه: {school}")
 
-    # گرفتن لیست آموزگاران (با محافظت در برابر ستون‌های متفاوت)
+    # گرفتن لیست آموزگاران
     teachers_df = read_sql("SELECT نام_کاربر, نام_کامل FROM users WHERE نقش = 'آموزگار' AND مدرسه = ?", params=(school,))
     if teachers_df.empty:
         st.info("هیچ آموزگاری در این مدرسه ثبت نشده است.")
@@ -828,22 +828,20 @@ def show_teacher_statistics_by_admin(school):
         st.write(teachers_df.head())
 
     # انتخاب آموزگار برای جزئیات
-unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
-selected_teacher = st.selectbox(
-    "انتخاب آموزگار برای مشاهده آمار:",
-    teachers_df["نام_کاربر"].unique(),
-    key=unique_key
-)
-
+    unique_key = f"teach_stat_{school}_{uuid.uuid4().hex[:6]}"
+    selected_teacher = st.selectbox(
+        "انتخاب آموزگار برای مشاهده آمار:",
+        teachers_df["نام_کاربر"].unique(),
+        key=unique_key
+    )
 
     # تعداد دانش‌آموزان آن آموزگار
-student_count_df = read_sql(
-    "SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?",
-    params=(selected_teacher,)
-)
-total_students = int(student_count_df.iloc[0]["تعداد"]) if not student_count_df.empty else 0
-st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
-
+    student_count_df = read_sql(
+        "SELECT COUNT(*) as تعداد FROM students WHERE آموزگار = ?",
+        params=(selected_teacher,)
+    )
+    total_students = int(student_count_df.iloc[0]["تعداد"]) if not student_count_df.empty else 0
+    st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
 
     # دروس آن آموزگار
     lessons_df = read_sql("SELECT DISTINCT درس FROM scores WHERE آموزگار = ?", params=(selected_teacher,))
@@ -854,13 +852,13 @@ st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
     lesson_options = ["همه دروس"] + lessons_df["درس"].tolist()
     selected_lesson = st.selectbox("انتخاب درس برای مشاهده وضعیت:", lesson_options, key=f"teach_lesson_{selected_teacher}")
 
-    # نمودار دایره‌ای (یک‌بار) — از draw_class_pie_chart استفاده می‌کنیم
+    # نمودار دایره‌ای
     if selected_lesson == "همه دروس":
         draw_class_pie_chart(selected_teacher, selected_lesson=None, title=f"توزیع وضعیت - همه دروس ({selected_teacher})")
     else:
         draw_class_pie_chart(selected_teacher, selected_lesson=selected_lesson, title=f"توزیع وضعیت درس {selected_lesson} ({selected_teacher})")
 
-    # نمایش جدول میانگین‌ها یا میانگین به ازای دانش‌آموز
+    # نمایش جدول میانگین‌ها
     if selected_lesson == "همه دروس":
         df_avg = read_sql("SELECT درس, AVG(نمره) as میانگین_نمره FROM scores WHERE آموزگار = ? GROUP BY درس", params=(selected_teacher,))
         if not df_avg.empty:
@@ -871,6 +869,7 @@ st.markdown(f"**👥 تعداد دانش‌آموزان:** {total_students}")
         if not df_avg.empty:
             st.markdown(f"### 📋 میانگین نمرات درس {selected_lesson}")
             st.dataframe(df_avg)
+
 
 def show_school_admin_panel(username):
     st.title("🏫 پنل مدیر مدرسه")
@@ -1042,6 +1041,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
