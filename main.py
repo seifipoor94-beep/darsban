@@ -849,9 +849,12 @@ def show_teacher_statistics_by_admin(school):
         st.info("هنوز نمره‌ای برای این آموزگار ثبت نشده است.")
         return
 
-    lesson_options = ["همه دروس"] + lessons_df["درس"].tolist()
-    selected_lesson = st.selectbox("انتخاب درس برای مشاهده وضعیت:", lesson_options, key=f"teach_lesson_{selected_teacher}")
-
+   unique_key = f"teach_lesson_{selected_teacher}_{uuid.uuid4().hex[:6]}"
+selected_lesson = st.selectbox(
+    "انتخاب درس برای مشاهده وضعیت:",
+    lesson_options,
+    key=unique_key
+)
     # نمودار دایره‌ای
     if selected_lesson == "همه دروس":
         draw_class_pie_chart(selected_teacher, selected_lesson=None, title=f"توزیع وضعیت - همه دروس ({selected_teacher})")
@@ -1041,6 +1044,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
