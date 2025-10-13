@@ -1,6 +1,6 @@
 # main.py (نسخه اصلاح‌شده — جایگزین کد قبلی)
 import os
-import sqlite3
+
 from datetime import datetime
 import io
 import traceback
@@ -99,78 +99,49 @@ def register_fonts_and_configure_matplotlib():
 _MATPLOTLIB_FONT_OK, _PDF_FONT_PATH = register_fonts_and_configure_matplotlib()
 
 # -------------------------
-# اتصال به دیتابیس
-DB_PATH = os.path.join(DATA_DIR, "school.db")
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-cursor = conn.cursor()
-
-def init_database():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            نام_کاربر TEXT PRIMARY KEY,
-            نام_کامل TEXT,
-            رمز_عبور TEXT,
-            نقش TEXT,
-            مدرسه TEXT,
-            وضعیت TEXT,
-            تاریخ_انقضا TEXT
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS students (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            آموزگار TEXT,
-            نام_دانش‌آموز TEXT,
-            نام_کاربری TEXT,
-            رمز_دانش‌آموز TEXT,
-            کلاس TEXT,
-            تاریخ_ثبت TEXT
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS scores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            آموزگار TEXT,
-            نام_دانش‌آموز TEXT,
-            درس TEXT,
-            نمره_شماره TEXT,
-            نمره INTEGER,
-            تاریخ TEXT
-        )
-    """)
-    conn.commit()
-    # درج admin پیش‌فرض در صورت نبودن
-    cursor.execute("""
-        INSERT OR IGNORE INTO users
-        (نام_کاربر, نام_کامل, رمز_عبور, نقش, مدرسه, وضعیت, تاریخ_انقضا)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, ("admin", "مدیر سامانه", "1234", "مدیر سامانه", "مدرسه نمونه", "فعال", "2099/12/31"))
-    conn.commit()
-
-init_database()
+# -------------------------
+# اتصال به Supabase (در فایل supabase_utils.py تعریف شده)
+from supabase_utils import supabase
 
 # -------------------------
-# توابع کمکی DB
-def read_sql(query, params=None):
+# توابع کمکی برای خواندن داده از Supabase
+
+def fetch_students_by_teacher(username):
     try:
-        return pd.read_sql_query(query, conn, params=params)
+        response = supabase.table("students").select("*").eq("آموزگار", username).execute()
+        return pd.DataFrame(response.data)
     except Exception as e:
-        st.error("خطا در اجرای پرس‌وجوی خواندن SQL:")
+        st.error("خطا در دریافت لیست دانش‌آموزان:")
         st.text(str(e))
-        st.text(traceback.format_exc())
         return pd.DataFrame()
 
-def execute_sql(query, params=None):
+def fetch_scores_by_student_and_teacher(student_name, teacher):
     try:
-        if params:
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query)
-        conn.commit()
+        response = supabase.table("scores").select("*").eq("نام_دانش‌آموز", student_name).eq("آموزگار", teacher).execute()
+        return pd.DataFrame(response.data)
     except Exception as e:
-        st.error("خطا در اجرای پرس‌وجوی نوشتن SQL:")
+        st.error("خطا در دریافت نمرات:")
         st.text(str(e))
-        st.text(traceback.format_exc())
+        return pd.DataFrame()
+
+def fetch_lessons_by_teacher(username):
+    try:
+        response = supabase.table("scores").select("درس").eq("آموزگار", username).execute()
+        df = pd.DataFrame(response.data)
+        return df["درس"].dropna().unique().tolist()
+    except Exception as e:
+        st.error("خطا در دریافت لیست دروس:")
+        st.text(str(e))
+        return []
+
+def fetch_users_by_role_and_school(role, school):
+    try:
+        response = supabase.table("users").select("نام_کاربر").eq("نقش", role).eq("مدرسه", school).execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error("خطا در دریافت کاربران:")
+        st.text(str(e))
+        return pd.DataFrame()
 
 # -------------------------
 # وضعیت/متن وضعیت (ایمن‌تر)
@@ -1113,6 +1084,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
