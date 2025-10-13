@@ -850,7 +850,7 @@ def show_teacher_statistics_by_admin(school):
         return
 
    unique_key = f"teach_lesson_{selected_teacher}_{uuid.uuid4().hex[:6]}"
-selected_lesson = st.selectbox(
+   selected_lesson = st.selectbox(
     "انتخاب درس برای مشاهده وضعیت:",
     lesson_options,
     key=unique_key
@@ -1044,6 +1044,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
