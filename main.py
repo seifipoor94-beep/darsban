@@ -17,6 +17,17 @@ import jdatetime
 # برای راست‌چین و reshaping متن فارسی در matplotlib
 import arabic_reshaper
 from bidi.algorithm import get_display
+import streamlit as st
+from supabase_utils import supabase  # اتصال به Supabase از فایل جدا
+
+# تست اتصال: دریافت لیست کاربران
+response = supabase.table("users").select("*").execute()
+users = response.data
+
+# نمایش در Streamlit
+st.title("لیست کاربران")
+for user in users:
+    st.write(f"{user['نام_کاربر']} - نقش: {user['نقش']}")
 
 # -------------------------
 # تابع reshape برای متن‌های فارسی
@@ -1031,6 +1042,7 @@ else:
         show_teacher_panel(username)
     else:
         show_student_panel(username)
+
 
 
 
