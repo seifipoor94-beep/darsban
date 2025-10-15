@@ -114,41 +114,52 @@ def login_page():
 # -------------------------------
 # پنل مدیر سامانه
 # -------------------------------
-
 def show_superadmin_panel(username):
     st.title("🏫 پنل مدیر سامانه")
     st.markdown(f"👤 مدیر: {username}")
 
     tabs = st.tabs(["مدیریت مدارس", "مدیریت کاربران", "گزارش‌ها"])
 
-
-
     # --- تب مدیریت مدارس ---
-    # --- تب مدیریت مدارس ---
-with tabs[0]:
-    st.subheader("افزودن یا مشاهده مدارس")
+    with tabs[0]:
+        st.subheader("افزودن یا مشاهده مدارس")
 
-    new_school = st.text_input("نام مدرسه جدید:")
-    if st.button("افزودن مدرسه"):
-        if new_school.strip():
-            school_code = str(uuid.uuid4())[:8]  # تولید کد مدرسه تصادفی
+        new_school = st.text_input("نام مدرسه جدید:")
+        if st.button("افزودن مدرسه"):
+            if new_school.strip():
+                school_code = str(uuid.uuid4())[:8]
+                supabase.table("schools").insert({
+                    "نام_مدرسه": new_school,
+                    "کد_مدرسه": school_code
+                }).execute()
+                st.success("✅ مدرسه با موفقیت افزوده شد.")
+                st.rerun()
+            else:
+                st.warning("لطفاً نام مدرسه را وارد کنید.")
 
-            supabase.table("schools").insert({
-                "نام_مدرسه": new_school,
-                "کد_مدرسه": school_code
-            }).execute()
-            st.success("✅ مدرسه با موفقیت افزوده شد.")
-            st.rerun()
+        schools_response = supabase.table("schools").select("*").execute()
+        if schools_response.data:
+            schools_df = pd.DataFrame(schools_response.data)
+            st.markdown("### لیست مدارس ثبت‌شده")
+            selected_school = st.selectbox("انتخاب مدرسه برای ویرایش یا حذف:", schools_df["نام_مدرسه"].tolist())
+            new_name = st.text_input("نام جدید برای مدرسه:")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("ویرایش نام مدرسه"):
+                    if new_name.strip():
+                        supabase.table("schools").update({"نام_مدرسه": new_name}).eq("نام_مدرسه", selected_school).execute()
+                        st.success("✅ نام مدرسه ویرایش شد.")
+                        st.rerun()
+                    else:
+                        st.warning("نام جدید نمی‌تواند خالی باشد.")
+            with col2:
+                if st.button("🗑️ حذف مدرسه"):
+                    supabase.table("schools").delete().eq("نام_مدرسه", selected_school).execute()
+                    st.success("✅ مدرسه حذف شد.")
+                    st.rerun()
+            st.dataframe(schools_df[["نام_مدرسه", "کد_مدرسه"]])
         else:
-            st.warning("لطفاً نام مدرسه را وارد کنید.")
-
-    schools_response = supabase.table("schools").select("*").execute()
-    if schools_response.data:
-        schools_df = pd.DataFrame(schools_response.data)
-        st.markdown("### لیست مدارس ثبت‌شده")
-        st.dataframe(schools_df[["نام_مدرسه", "کد_مدرسه"]])
-    else:
-        st.info("هیچ مدرسه‌ای ثبت نشده است.")
+            st.info("هیچ مدرسه‌ای ثبت نشده است.")
 
     # --- تب مدیریت کاربران ---
     with tabs[1]:
@@ -159,6 +170,30 @@ with tabs[0]:
 
         if not users_df.empty:
             st.dataframe(users_df[["نام_کاربر", "نام_کامل", "نقش", "مدرسه"]])
+            selected_user = st.selectbox("انتخاب کاربر برای ویرایش یا حذف:", users_df["نام_کاربر"].tolist())
+            new_fullname = st.text_input("نام کامل جدید:")
+            new_password = st.text_input("رمز جدید:", type="password")
+            new_role = st.selectbox("نقش جدید:", ["آموزگار", "مدیر مدرسه", "معاون"])
+            school_list = supabase.table("schools").select("نام_مدرسه").execute()
+            school_names = [row["نام_مدرسه"] for row in school_list.data] if school_list.data else []
+            new_school = st.selectbox("مدرسه جدید:", school_names)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("ویرایش اطلاعات کاربر"):
+                    supabase.table("users").update({
+                        "نام_کامل": new_fullname,
+                        "رمز": new_password,
+                        "نقش": new_role,
+                        "مدرسه": new_school
+                    }).eq("نام_کاربر", selected_user).execute()
+                    st.success("✅ اطلاعات کاربر ویرایش شد.")
+                    st.rerun()
+            with col2:
+                if st.button("🗑️ حذف کاربر"):
+                    supabase.table("users").delete().eq("نام_کاربر", selected_user).execute()
+                    st.success("✅ کاربر حذف شد.")
+                    st.rerun()
 
         st.markdown("### افزودن کاربر جدید")
         col1, col2, col3 = st.columns(3)
@@ -170,8 +205,6 @@ with tabs[0]:
             fullname = st.text_input("نام کامل:")
 
         role = st.selectbox("نقش کاربر:", ["آموزگار", "مدیر مدرسه", "معاون"])
-        school_list = supabase.table("schools").select("نام_مدرسه").execute()
-        school_names = [row["نام_مدرسه"] for row in school_list.data] if school_list.data else []
         school = st.selectbox("مدرسه:", school_names)
 
         if st.button("افزودن کاربر"):
@@ -193,7 +226,6 @@ with tabs[0]:
         st.subheader("گزارش کلی کاربران و مدارس")
 
         school_count = supabase.table("schools").select("*", count="exact").execute().count or 0
-
         user_count = supabase.table("users").select("*", count="exact").execute().count or 0
 
         st.markdown(f"""
@@ -211,7 +243,8 @@ with tabs[0]:
             st.pyplot(fig)
         else:
             st.info("داده کافی برای نمایش نمودار وجود ندارد.")
-# -------------------------------
+
+
 # پنل مدیر مدرسه
 # -------------------------------
 
@@ -489,6 +522,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
