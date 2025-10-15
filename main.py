@@ -289,7 +289,7 @@ def show_school_admin_panel(username):
             if new_teacher and password:
                 supabase.table("users").insert({
                     "نام_کاربر": new_teacher,
-                    "رمز": password,
+                    "رمز_عبور": password,
                     "نام_کامل": fullname,
                     "نقش": "آموزگار",
                     "مدرسه": school
@@ -527,6 +527,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
