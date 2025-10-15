@@ -119,32 +119,11 @@ def show_superadmin_panel(username):
     st.title("🏫 پنل مدیر سامانه")
     st.markdown(f"👤 مدیر: {username}")
 
-    tabs = st.tabs(["مدیریت مدارس", "مدیریت کاربران", "گزارش‌ها"])
+    tabs = st.tabs(["مدیریت کاربران", "گزارش‌ها"])
+
 
     # --- تب مدیریت مدارس ---
-    with tabs[0]:
-        st.subheader("افزودن یا مشاهده مدارس")
-
-        new_school = st.text_input("نام مدرسه جدید:")
-        if st.button("افزودن مدرسه"):
-            if new_school.strip():
-                school_code = str(uuid.uuid4())[:8]  # تولید کد مدرسه تصادفی
-
-                supabase.table("schools").insert({
-                   "نام_مدرسه": new_school,
-                   "کد_مدرسه": school_code
-                }).execute()
-                st.success("✅ مدرسه با موفقیت افزوده شد.")
-            else:
-                st.warning("لطفاً نام مدرسه را وارد کنید.")
-
-        schools_response = supabase.table("schools").select("*").execute()
-        if schools_response.data:
-            schools_df = pd.DataFrame(schools_response.data)
-            st.dataframe(schools_df)
-        else:
-            st.info("هیچ مدرسه‌ای ثبت نشده است.")
-
+   
     # --- تب مدیریت کاربران ---
     with tabs[1]:
         st.subheader("مدیریت کاربران سیستم")
@@ -484,6 +463,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
