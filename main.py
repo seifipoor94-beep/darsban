@@ -44,7 +44,8 @@ def delete_student(student_name):
 # -------------------------------
 
 def authenticate(username, password):
-    response = supabase.table("users").select("*").eq("نام_کاربر", username).eq("رمز", password).execute()
+    response = supabase.table("users").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
+
     if response.data:
         return response.data[0]
     return None
@@ -476,3 +477,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+
