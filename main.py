@@ -131,8 +131,8 @@ def show_superadmin_panel(username):
                school_code = str(uuid.uuid4())[:8]  # تولید کد مدرسه تصادفی
 
                supabase.table("schools").insert({
-               "نام_مدرسه": new_school,
-               "کد_مدرسه": school_code
+                   "نام_مدرسه": new_school,
+                   "کد_مدرسه": school_code
                }).execute()
                 st.success("✅ مدرسه با موفقیت افزوده شد.")
             else:
@@ -484,6 +484,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
