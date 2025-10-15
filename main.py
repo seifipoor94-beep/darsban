@@ -163,7 +163,7 @@ def show_superadmin_panel(username):
                 st.warning("لطفاً تمام فیلدها را پر کنید.")
 
     # --- تب گزارش‌ها ---
-    with tabs[2]:
+    with tabs[1]:
         st.subheader("گزارش کلی کاربران و مدارس")
 
         school_count = supabase.table("schools").select("*", count="exact").execute().count or 0
@@ -463,6 +463,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
