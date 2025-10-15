@@ -114,6 +114,11 @@ def login_page():
 # -------------------------------
 # پنل مدیر سامانه
 # -------------------------------
+import uuid
+import pandas as pd
+import matplotlib.pyplot as plt
+import streamlit as st
+
 def show_superadmin_panel(username):
     st.title("🏫 پنل مدیر سامانه")
     st.markdown(f"👤 مدیر: {username}")
@@ -172,7 +177,7 @@ def show_superadmin_panel(username):
             st.dataframe(users_df[["نام_کاربر", "نام_کامل", "نقش", "مدرسه"]])
             selected_user = st.selectbox("انتخاب کاربر برای ویرایش یا حذف:", users_df["نام_کاربر"].tolist())
             new_fullname = st.text_input("نام کامل جدید:")
-            new_password = st.text_input("رمز جدید:", type="password")
+            new_password = st.text_input("رمز عبور جدید:", type="password")
             new_role = st.selectbox("نقش جدید:", ["آموزگار", "مدیر مدرسه", "معاون"])
             school_list = supabase.table("schools").select("نام_مدرسه").execute()
             school_names = [row["نام_مدرسه"] for row in school_list.data] if school_list.data else []
@@ -183,7 +188,7 @@ def show_superadmin_panel(username):
                 if st.button("ویرایش اطلاعات کاربر"):
                     supabase.table("users").update({
                         "نام_کامل": new_fullname,
-                        "رمز": new_password,
+                        "رمز_عبور": new_password,
                         "نقش": new_role,
                         "مدرسه": new_school
                     }).eq("نام_کاربر", selected_user).execute()
@@ -211,7 +216,7 @@ def show_superadmin_panel(username):
             if username and password and fullname:
                 supabase.table("users").insert({
                     "نام_کاربر": username,
-                    "رمز": password,
+                    "رمز_عبور": password,
                     "نام_کامل": fullname,
                     "نقش": role,
                     "مدرسه": school
@@ -522,6 +527,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
