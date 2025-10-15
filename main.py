@@ -182,8 +182,9 @@ def show_superadmin_panel(username):
     with tabs[2]:
         st.subheader("گزارش کلی کاربران و مدارس")
 
-        school_count = supabase.table("schools").select("id", count="exact").execute().count or 0
-        user_count = supabase.table("users").select("id", count="exact").execute().count or 0
+        school_count = supabase.table("schools").select("*", count="exact").execute().count or 0
+
+        user_count = supabase.table("users").select("*", count="exact").execute().count or 0
 
         st.markdown(f"""
         - 🏫 تعداد مدارس: **{school_count}**
@@ -266,8 +267,9 @@ def show_school_admin_panel(username):
     with tabs[2]:
         st.subheader("📈 آمار کلی مدرسه")
 
-        total_students = supabase.table("students").select("id", count="exact").eq("مدرسه", school).execute().count or 0
-        total_teachers = supabase.table("users").select("id", count="exact").eq("مدرسه", school).eq("نقش", "آموزگار").execute().count or 0
+        total_students = supabase.table("students").select("*", count="exact").eq("مدرسه", school).execute().count or 0
+
+        total_teachers = supabase.table("users").select("*", count="exact").eq("مدرسه", school).eq("نقش", "آموزگار").execute().count or 0
 
         st.markdown(f"""
         - 👩‍🏫 تعداد آموزگاران: **{total_teachers}**
@@ -477,4 +479,5 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
