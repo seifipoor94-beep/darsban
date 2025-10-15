@@ -128,7 +128,12 @@ def show_superadmin_panel(username):
         new_school = st.text_input("نام مدرسه جدید:")
         if st.button("افزودن مدرسه"):
             if new_school.strip():
-                supabase.table("schools").insert({"نام_مدرسه": new_school}).execute()
+               school_code = str(uuid.uuid4())[:8]  # تولید کد مدرسه تصادفی
+
+               supabase.table("schools").insert({
+               "نام_مدرسه": new_school,
+               "کد_مدرسه": school_code
+               }).execute()
                 st.success("✅ مدرسه با موفقیت افزوده شد.")
             else:
                 st.warning("لطفاً نام مدرسه را وارد کنید.")
@@ -479,5 +484,6 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
