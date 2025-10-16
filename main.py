@@ -103,11 +103,14 @@ def main_dashboard(user):
 
     st.sidebar.title("منوی اصلی")
     st.sidebar.markdown(f"👋 خوش آمدی، **{user['نام_کامل']}**")
-    if st.sidebar.button("🚪 خروج از سامانه"):
-    st.session_state.pop("user", None)
-    st.success("با موفقیت خارج شدید ✅")
-    st.rerun()
 
+    # 🚪 دکمه خروج از سامانه
+    if st.sidebar.button("🚪 خروج از سامانه"):
+        st.session_state.pop("user", None)
+        st.success("با موفقیت خارج شدید ✅")
+        st.rerun()
+
+    # 📌 نمایش پنل مناسب بر اساس نقش
     if role == "مدیر سامانه":
         show_superadmin_panel(username)
     elif role == "مدیر مدرسه":
@@ -685,6 +688,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
