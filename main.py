@@ -5,8 +5,28 @@ from io import BytesIO
 from fpdf import FPDF
 from supabase_utils import supabase
 import uuid
+import matplotlib.font_manager as fm  # برای فونت فارسی در نمودارها
 
+# 🎯 تنظیم صفحه Streamlit
 st.set_page_config(page_title="سامانه مدیریت مدرسه", layout="wide")
+
+# 🎨 تنظیم فونت فارسی برای نمودارها
+font_path = "fonts/Vazir.ttf"  # مسیر به فونت فارسی در پروژه
+font_prop = fm.FontProperties(fname=font_path)
+plt.rcParams["font.family"] = font_prop.get_name()
+plt.rcParams["axes.unicode_minus"] = False
+
+# 📐 تنظیم راست‌چین برای کل صفحه
+st.markdown("""
+    <style>
+    body, div, p, h1, h2, h3, h4, h5, h6 {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Vazir', sans-serif;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 
 # -------------------------------
 # توابع کمکی Supabase
@@ -350,13 +370,12 @@ def show_assistant_panel(username):
 # -------------------------------
 # پنل آموزگار
 # -------------------------------
-
 def show_teacher_panel(username):
     st.title("👩‍🏫 پنل آموزگار")
     st.markdown(f"👤 آموزگار: {username}")
 
-    st.subheader("📚 مدیریت دانش‌آموزان")
-
+    # 📚 لیست دانش‌آموزان
+    st.subheader("📚 لیست دانش‌آموزان شما")
     students_response = supabase.table("students").select("*").eq("آموزگار", username).execute()
     students_df = pd.DataFrame(students_response.data) if students_response.data else pd.DataFrame()
 
@@ -365,6 +384,7 @@ def show_teacher_panel(username):
     else:
         st.info("هنوز دانش‌آموزی برای شما ثبت نشده است.")
 
+    # ➕ افزودن دانش‌آموز
     st.markdown("### ➕ افزودن دانش‌آموز جدید")
     col1, col2 = st.columns(2)
     with col1:
@@ -384,17 +404,16 @@ def show_teacher_panel(username):
         else:
             st.warning("لطفاً نام دانش‌آموز را وارد کنید.")
 
-    # ثبت نمره برای دانش‌آموزان
-    st.subheader("✏️ ثبت نمرات دانش‌آموزان")
-
+    # ✏️ ثبت نمره
+    st.subheader("✏️ ثبت نمره برای دانش‌آموز")
     if not students_df.empty:
         selected_student = st.selectbox("انتخاب دانش‌آموز:", students_df["نام"].tolist())
         lesson = st.text_input("نام درس:")
-        score = st.number_input("نمره:", min_value=0, max_value=20, step=1)
+        score = st.selectbox("نمره (۱ تا ۴):", [1, 2, 3, 4])
 
         if st.button("ثبت نمره"):
             supabase.table("scores").insert({
-                "نام_دانش‌آموز": selected_student,
+                "نام_دانش_آموز": selected_student,
                 "درس": lesson,
                 "نمره": score,
                 "آموزگار": username
@@ -402,15 +421,91 @@ def show_teacher_panel(username):
             st.success("✅ نمره ثبت شد.")
             st.rerun()
 
-    # نمایش میانگین نمرات
-    st.subheader("📈 میانگین نمرات دانش‌آموزان")
-    scores_response = supabase.table("scores").select("نام_دانش‌آموز", "نمره").eq("آموزگار", username).execute()
-    if scores_response.data:
-        df_scores = pd.DataFrame(scores_response.data)
-        avg_scores = df_scores.groupby("نام_دانش‌آموز")["نمره"].mean().sort_values(ascending=False)
-        st.bar_chart(avg_scores)
+    # 🛠️ مدیریت نمرات
+    st.subheader("🛠️ مدیریت نمرات ثبت‌شده")
+    scores_response = supabase.table("scores").select("*").eq("آموزگار", username).execute()
+    scores_df = pd.DataFrame(scores_response.data) if scores_response.data else pd.DataFrame()
+
+    if not scores_df.empty:
+        st.dataframe(scores_df[["نام_دانش_آموز", "درس", "نمره"]])
+
+        selected_row = st.selectbox("انتخاب ردیف نمره برای ویرایش یا حذف:",
+            scores_df.apply(lambda row: f"{row['نام_دانش_آموز']} - {row['درس']} - {row['نمره']}", axis=1).tolist())
+
+        selected_index = scores_df.index[scores_df.apply(lambda row: f"{row['نام_دانش_آموز']} - {row['درس']} - {row['نمره']}", axis=1) == selected_row][0]
+        selected_score = scores_df.loc[selected_index]
+
+        new_score = st.selectbox("نمره جدید:", [1, 2, 3, 4], index=int(selected_score["نمره"]) - 1)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("ویرایش نمره"):
+                supabase.table("scores").update({"نمره": new_score}).eq("id", selected_score["id"]).execute()
+                st.success("✅ نمره ویرایش شد.")
+                st.rerun()
+        with col2:
+            if st.button("🗑️ حذف نمره"):
+                supabase.table("scores").delete().eq("id", selected_score["id"]).execute()
+                st.success("✅ نمره حذف شد.")
+                st.rerun()
     else:
-        st.info("هنوز نمره‌ای ثبت نشده است.")
+        st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
+
+    # 🏆 رتبه‌بندی کلی
+    st.subheader("🏆 رتبه‌بندی کلی دانش‌آموزان")
+    if not scores_df.empty:
+        avg_all = scores_df.groupby("نام_دانش_آموز")["نمره"].mean().sort_values(ascending=False)
+        st.dataframe(avg_all.reset_index().rename(columns={"نمره": "میانگین نمرات"}))
+    else:
+        st.info("داده‌ای برای رتبه‌بندی کلی وجود ندارد.")
+
+    # 📚 رتبه‌بندی و تحلیل درسی
+    st.subheader("📚 رتبه‌بندی و تحلیل درسی")
+    if not scores_df.empty:
+        selected_lesson = st.selectbox("انتخاب درس برای تحلیل:", scores_df["درس"].unique())
+        lesson_df = scores_df[scores_df["درس"] == selected_lesson]
+
+        # رتبه‌بندی درسی
+        avg_lesson = lesson_df.groupby("نام_دانش_آموز")["نمره"].mean().sort_values(ascending=False)
+        st.markdown(f"**🏅 رتبه‌بندی در درس {selected_lesson}**")
+        st.dataframe(avg_lesson.reset_index().rename(columns={"نمره": "میانگین نمره"}))
+
+        # نمودار دایره‌ای سطح عملکرد
+        def categorize(score):
+            return {
+                1: "نیاز به تلاش بیشتر",
+                2: "قابل قبول",
+                3: "خوب",
+                4: "خیلی خوب"
+            }.get(score, "نامشخص")
+
+        lesson_df["سطح عملکرد"] = lesson_df["نمره"].apply(categorize)
+        performance_counts = lesson_df["سطح عملکرد"].value_counts()
+
+        fig, ax = plt.subplots()
+        ax.pie(performance_counts, labels=performance_counts.index, autopct="%1.1f%%", startangle=140)
+        ax.set_title(f"🎯 سطح عملکرد در درس {selected_lesson}", fontproperties=font_prop)
+        st.pyplot(fig)
+    else:
+        st.info("داده‌ای برای تحلیل درسی وجود ندارد.")
+
+    # 📈 نمودار خطی پیشرفت نمرات
+    st.subheader("📈 نمودار پیشرفت نمرات دانش‌آموزان")
+    if not scores_df.empty:
+        pivot_df = scores_df.pivot_table(index="درس", columns="نام_دانش_آموز", values="نمره", aggfunc="mean")
+        pivot_df = pivot_df.sort_index()
+
+        fig, ax = plt.subplots()
+        pivot_df.plot(ax=ax, marker="o")
+        ax.set_ylabel("نمره", fontproperties=font_prop)
+        ax.set_xlabel("درس", fontproperties=font_prop)
+        ax.set_title("روند پیشرفت نمرات", fontproperties=font_prop)
+        ax.legend(title="دانش‌آموز", prop=font_prop)
+        plt.xticks(rotation=45)
+        st.pyplot(fig)
+    else:
+        st.info("نمره‌ای برای رسم نمودار وجود ندارد.")
+
 
 # -------------------------------
 # پنل دانش‌آموز + PDF کارنامه
@@ -527,6 +622,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
