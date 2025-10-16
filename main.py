@@ -69,7 +69,7 @@ def authenticate(username, password):
         return response.data[0]
 
     # 🎓 جستجو در جدول students (دانش‌آموز)
-    response2 = supabase.table("students").select("*").eq("نام_کاربر", username).eq("رمز_دانش\u200cآموز", password).execute()
+    response2 = supabase.table("students").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
     if response2.data:
         student = response2.data[0]
         student["نقش"] = "دانش‌آموز"
@@ -447,7 +447,7 @@ def show_teacher_panel(username):
     # 🔐 تغییر رمز ورود دانش‌آموز
     st.subheader("🔐 تغییر رمز ورود دانش‌آموز")
     if not students_df.empty:
-        student_usernames = students_df["نام_کاربری"].dropna().tolist()
+        student_usernames = students_df["نام_کاربر"].dropna().tolist()
         selected_user = st.selectbox("انتخاب دانش‌آموز برای تغییر رمز:", student_usernames)
         new_password = st.text_input("رمز جدید:", type="password")
 
@@ -573,7 +573,8 @@ def show_student_panel(username):
     st.title("🎓 پنل دانش‌آموز")
     st.markdown(f"👤 دانش‌آموز: {username}")
 
-    student_row = supabase.table("students").select("*").eq("نام", username).execute()
+    student_row = supabase.table("students").select("*").eq("نام_کامل", username).execute()
+
     if not student_row.data:
         st.error("اطلاعات دانش‌آموز یافت نشد.")
         return
@@ -680,6 +681,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
