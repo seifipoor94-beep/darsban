@@ -64,19 +64,19 @@ def delete_student(student_name):
 # -------------------------------
 def authenticate(username, password):
     # 👑 جستجو در جدول users (مدیر، معاون، آموزگار)
-    response = supabase.table("users").select("*").eq("نام_کاربر", username).eq("رمز", password).execute()
+    response = supabase.table("users").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
     if response.data:
         return response.data[0]
 
     # 🎓 جستجو در جدول students (دانش‌آموز)
-    response2 = supabase.table("students").select("*").eq("نام_کاربری", username).eq("رمز_دانش‌آموز", password).execute()
+    response2 = supabase.table("students").select("*").eq("نام_کاربر", username).eq("رمز_دانش\u200cآموز", password).execute()
     if response2.data:
         student = response2.data[0]
-        student["نقش"] = "دانش‌آموز"  # 👈 برای اینکه در داشبورد تشخیص داده بشه
+        student["نقش"] = "دانش‌آموز"
         return student
 
-    # اگر در هیچ‌کدوم پیدا نشد
     return None
+
 
 # -------------------------------
 # ثبت‌نام مدیر یا کاربر جدید
@@ -680,6 +680,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
