@@ -580,7 +580,7 @@ def show_student_panel(username):
     st.title("🎓 پنل دانش‌آموز")
     st.markdown(f"👤 دانش‌آموز: {username}")
 
-    student_row = supabase.table("students").select("*").eq("نام_کامل", username).execute()
+    student_row = supabase.table("students").select("*").eq("نام_کاربر", username).execute()
 
     if not student_row.data:
         st.error("اطلاعات دانش‌آموز یافت نشد.")
@@ -688,6 +688,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
