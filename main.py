@@ -595,7 +595,8 @@ def show_student_panel(username):
     st.title("🎓 پنل دانش‌آموز")
 
     # 📌 مرحله ۱: دریافت اطلاعات دانش‌آموز از جدول students
-    student_response = supabase.table("students").select("*").eq("نام_کاربری", username).execute()
+    student_response = supabase.table("students").select("*").eq("نام_کاربر", username).execute()
+
     if not student_response.data:
         st.error("❌ اطلاعات دانش‌آموز پیدا نشد.")
         return
@@ -758,6 +759,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
