@@ -438,8 +438,8 @@ def show_teacher_panel(username):
         if student_name and student_username and student_password and class_name:
             supabase.table("students").insert({
                 "نام_دانش‌آموز": student_name,
-                "نام_کاربری": student_username,
-                "رمز_دانش‌آموز": student_password,
+                "نام_کاربر": student_username,
+                "رمز_عبور": student_password,  # ✅ اصلاح‌شده
                 "پایه": grade,
                 "کلاس": class_name,
                 "مدرسه": school_name_input,
@@ -460,7 +460,7 @@ def show_teacher_panel(username):
 
         if st.button("ثبت رمز جدید"):
             if new_password:
-                supabase.table("students").update({"رمز_دانش‌آموز": new_password}).eq("نام_کاربری", selected_user).execute()
+                supabase.table("students").update({"رمز_عبور": new_password}).eq("نام_کاربر", selected_user).execute()  # ✅ اصلاح‌شده
                 st.success("✅ رمز جدید با موفقیت ثبت شد.")
             else:
                 st.warning("رمز جدید نمی‌تواند خالی باشد.")
@@ -489,6 +489,9 @@ def show_teacher_panel(username):
                 st.warning("لطفاً نام درس را وارد کنید.")
     else:
         st.info("برای ثبت نمره ابتدا باید دانش‌آموزی ثبت کنید.")
+
+    # ادامه بخش‌های مدیریت نمرات، رتبه‌بندی و نمودارها بدون تغییر باقی می‌مانند
+
 
     # 🛠️ مدیریت نمرات ثبت‌شده
     st.subheader("🛠️ مدیریت نمرات ثبت‌شده")
@@ -759,6 +762,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
