@@ -580,33 +580,40 @@ def show_student_panel(username):
     st.title("🎓 پنل دانش‌آموز")
     st.markdown(f"👤 دانش‌آموز: {username}")
 
+    # دریافت اطلاعات دانش‌آموز از جدول students
     student_row = supabase.table("students").select("*").eq("نام_کاربر", username).execute()
-
     if not student_row.data:
         st.error("اطلاعات دانش‌آموز یافت نشد.")
         return
 
-    teacher = student_row.data[0].get("آموزگار", "")
-    grade = student_row.data[0].get("پایه", "")
-    st.markdown(f"🏫 پایه: **{grade}**  |  👩‍🏫 آموزگار: **{teacher}**")
+    student_info = student_row.data[0]
+    teacher = student_info.get("آموزگار", "")
+    grade = student_info.get("پایه", "")
+    full_name = student_info.get("نام_دانش‌آموز", username)
 
-    scores_response = supabase.table("scores").select("درس", "نمره").eq("نام_دانش‌آموز", username).execute()
+    st.markdown(f"🏫 پایه: **{grade}** | 👩‍🏫 آموزگار: **{teacher}**")
+
+    # دریافت نمرات از جدول scores
+    scores_response = supabase.table("scores").select("درس", "نمره").eq("نام_دانش‌آموز", full_name).execute()
     if not scores_response.data:
         st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
         return
 
     df_scores = pd.DataFrame(scores_response.data)
+
     st.subheader("📋 نمرات ثبت‌شده شما")
     st.dataframe(df_scores)
 
     avg = df_scores["نمره"].mean()
     st.success(f"🎯 میانگین کل شما: {round(avg, 2)}")
 
+    # نمودار دایره‌ای درصد نمرات
     fig1, ax1 = plt.subplots()
     ax1.pie(df_scores["نمره"], labels=df_scores["درس"], autopct="%1.1f%%", startangle=90)
     ax1.set_title("درصد نمرات هر درس")
     st.pyplot(fig1)
 
+    # نمودار خطی پیشرفت تحصیلی
     fig2, ax2 = plt.subplots()
     ax2.plot(df_scores["درس"], df_scores["نمره"], marker="o", linestyle="-")
     ax2.set_xlabel("درس")
@@ -614,15 +621,16 @@ def show_student_panel(username):
     ax2.set_title("نمودار پیشرفت تحصیلی")
     st.pyplot(fig2)
 
+    # دکمه دانلود PDF کارنامه
     if st.button("📄 دانلود کارنامه به صورت PDF"):
         pdf = FPDF()
         pdf.add_page()
         pdf.add_font("Vazir", "", "Vazir.ttf", uni=True)
         pdf.set_font("Vazir", "", 14)
-        pdf.cell(200, 10, txt=f"کارنامه {username}", ln=True, align="C")
+        pdf.cell(200, 10, txt=f"کارنامه {full_name}", ln=True, align="C")
         pdf.ln(10)
-
         pdf.set_font("Vazir", "", 12)
+
         for index, row in df_scores.iterrows():
             pdf.cell(90, 10, txt=row["درس"], border=1)
             pdf.cell(30, 10, txt=str(row["نمره"]), border=1, ln=True)
@@ -632,10 +640,11 @@ def show_student_panel(username):
 
         pdf_output = BytesIO()
         pdf.output(pdf_output)
+
         st.download_button(
             label="دانلود PDF",
             data=pdf_output.getvalue(),
-            file_name=f"Report_{username}.pdf",
+            file_name=f"Report_{full_name}.pdf",
             mime="application/pdf"
         )
 
@@ -688,6 +697,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
