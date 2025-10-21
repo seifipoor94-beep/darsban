@@ -621,8 +621,9 @@ def show_student_panel(username):
     st.divider()
 
     # 📚 مرحله ۲: گرفتن نمرات از جدول scores
+    # 📚 مرحله ۲: گرفتن نمرات از جدول scores
     full_name = st.session_state["user"].get("نام_دانش‌آموز", "ناشناس")
-    scores_response = supabase.table("scores").select("درس", "نمره").eq("نام_دانش‌آموز", full_name).execute()
+    scores_response = supabase.table("scores").select("درس, نمره").eq("نام_دانش‌آموز", full_name).execute()
 
     if not scores_response.data:
         st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
@@ -765,6 +766,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
