@@ -54,7 +54,7 @@ def add_score(data):
     supabase.table("scores").insert(data).execute()
 
 def update_score(student_name, lesson, new_score):
-    supabase.table("scores").update({"نمره": new_score}).eq("نام_دانش‌آموز", student_name).eq("درس", lesson).execute()
+    supabase.table("scores").update({"نمره": new_score}).eq("student", student_name).eq("درس", lesson).execute()
 
 def delete_student(student_name):
     supabase.table("students").delete().eq("نام", student_name).execute()
@@ -102,7 +102,7 @@ def main_dashboard(user):
     username = user["نام_کاربر"]
 
     st.sidebar.title("منوی اصلی")
-    st.sidebar.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('نام_دانش‌آموز', 'کاربر'))}**")
+    st.sidebar.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**")
 
 
     # 🚪 دکمه خروج از سامانه
@@ -419,7 +419,7 @@ def show_teacher_panel(username):
     students_df = pd.DataFrame(students_response.data) if students_response.data else pd.DataFrame()
 
     if not students_df.empty:
-        st.dataframe(students_df[["نام_دانش‌آموز", "پایه", "کلاس", "مدرسه"]])
+        st.dataframe(students_df[["student", "پایه", "کلاس", "مدرسه"]])
     else:
         st.info("هنوز دانش‌آموزی برای شما ثبت نشده است.")
 
@@ -438,7 +438,7 @@ def show_teacher_panel(username):
     if st.button("ثبت دانش‌آموز"):
         if student_name and student_username and student_password and class_name:
             supabase.table("students").insert({
-                "نام_دانش‌آموز": student_name,
+                "student": student_name,
                 "نام_کاربر": student_username,
                 "رمز_عبور": student_password,  # ✅ اصلاح‌شده
                 "پایه": grade,
@@ -471,14 +471,14 @@ def show_teacher_panel(username):
     # ✏️ ثبت نمره برای دانش‌آموز
     st.subheader("✏️ ثبت نمره برای دانش‌آموز")
     if not students_df.empty:
-        selected_student = st.selectbox("انتخاب دانش‌آموز:", students_df["نام_دانش‌آموز"].tolist())
+        selected_student = st.selectbox("انتخاب دانش‌آموز:", students_df["student"].tolist())
         lesson = st.text_input("نام درس:")
         score = st.selectbox("نمره (۱ تا ۴):", [1, 2, 3, 4])
 
         if st.button("ثبت نمره"):
             if lesson:
                 supabase.table("scores").insert({
-                    "نام_دانش‌آموز": selected_student,
+                    "student": selected_student,
                     "درس": lesson,
                     "نمره": score,
                     "آموزگار": full_name,
@@ -500,14 +500,14 @@ def show_teacher_panel(username):
     scores_df = pd.DataFrame(scores_response.data) if scores_response.data else pd.DataFrame()
 
     if not scores_df.empty:
-        st.dataframe(scores_df[["نام_دانش‌آموز", "درس", "نمره"]])
+        st.dataframe(scores_df[["student", "درس", "نمره"]])
 
         selected_row = st.selectbox(
             "انتخاب ردیف نمره برای ویرایش یا حذف:",
-            scores_df.apply(lambda r: f"{r['نام_دانش‌آموز']} - {r['درس']} - {r['نمره']}", axis=1).tolist()
+            scores_df.apply(lambda r: f"{r['student']} - {r['درس']} - {r['نمره']}", axis=1).tolist()
         )
         selected_index = scores_df.index[
-            scores_df.apply(lambda r: f"{r['نام_دانش‌آموز']} - {r['درس']} - {r['نمره']}", axis=1) == selected_row
+            scores_df.apply(lambda r: f"{r['student']} - {r['درس']} - {r['نمره']}", axis=1) == selected_row
         ][0]
         selected_score = scores_df.loc[selected_index]
         new_score = st.selectbox("نمره جدید:", [1, 2, 3, 4], index=int(selected_score["نمره"]) - 1)
@@ -529,7 +529,7 @@ def show_teacher_panel(username):
     # 🏆 رتبه‌بندی کلی دانش‌آموزان
     st.subheader("🏆 رتبه‌بندی کلی دانش‌آموزان")
     if not scores_df.empty:
-        avg_all = scores_df.groupby("نام_دانش‌آموز")["نمره"].mean().sort_values(ascending=False)
+        avg_all = scores_df.groupby("student")["نمره"].mean().sort_values(ascending=False)
         st.dataframe(avg_all.reset_index().rename(columns={"نمره": "میانگین نمرات"}))
     else:
         st.info("داده‌ای برای رتبه‌بندی کلی وجود ندارد.")
@@ -539,7 +539,7 @@ def show_teacher_panel(username):
     if not scores_df.empty:
         selected_lesson_rank = st.selectbox("انتخاب درس برای رتبه‌بندی:", scores_df["درس"].unique())
         lesson_df_rank = scores_df[scores_df["درس"] == selected_lesson_rank]
-        avg_lesson = lesson_df_rank.groupby("نام_دانش‌آموز")["نمره"].mean().sort_values(ascending=False)
+        avg_lesson = lesson_df_rank.groupby("student")["نمره"].mean().sort_values(ascending=False)
         st.dataframe(avg_lesson.reset_index().rename(columns={"نمره": f"میانگین نمره ({selected_lesson_rank})"}))
     else:
         st.info("داده‌ای برای رتبه‌بندی درسی وجود ندارد.")
@@ -606,7 +606,7 @@ def show_student_panel(username):
         return
 
     student_info = student_response.data[0]
-    full_name = student_info["نام_دانش‌آموز"]
+    full_name = student_info["student"]
     school_name = student_info.get("مدرسه", "نامشخص")
     class_name = student_info.get("کلاس", "نامشخص")
     grade = student_info.get("پایه", "نامشخص")
@@ -622,8 +622,8 @@ def show_student_panel(username):
 
     # 📚 مرحله ۲: گرفتن نمرات از جدول scores
     # 📚 مرحله ۲: گرفتن نمرات از جدول scores
-    full_name = st.session_state["user"].get("نام_دانش‌آموز", "ناشناس")
-    scores_response = supabase.table("scores").select("درس, نمره").eq("نام_دانش‌آموز", full_name).execute()
+    full_name = st.session_state["user"].get("student", "ناشناس")
+    scores_response = supabase.table("scores").select("درس, نمره").eq("student", full_name).execute()
 
     if not scores_response.data:
         st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
@@ -730,14 +730,14 @@ def show_teacher_statistics_by_admin(school, selected_teacher):
         return
 
     df = pd.DataFrame(scores.data)
-    avg_per_student = df.groupby("نام_دانش‌آموز")["نمره"].mean().reset_index()
+    avg_per_student = df.groupby("student")["نمره"].mean().reset_index()
     avg_per_student = avg_per_student.sort_values("نمره", ascending=False)
     st.dataframe(avg_per_student)
 
     st.subheader("نمودار میانگین نمرات دانش‌آموزان")
     fig, ax = plt.subplots()
-    ax.bar(avg_per_student["نام_دانش‌آموز"], avg_per_student["نمره"])
-    ax.set_xticklabels(avg_per_student["نام_دانش‌آموز"], rotation=45, ha="right")
+    ax.bar(avg_per_student["student"], avg_per_student["نمره"])
+    ax.set_xticklabels(avg_per_student["student"], rotation=45, ha="right")
     st.pyplot(fig)
 
     class_avg = round(avg_per_student["نمره"].mean(), 2)
@@ -766,7 +766,6 @@ def app():
 
 if __name__ == "__main__":
     app()
-
 
 
 
