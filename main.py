@@ -580,27 +580,26 @@ def show_teacher_panel(username):
 # پنل دانش‌آموز + PDF کارنامه
 # -------------------------------
 
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib import font_manager
-from fpdf import FPDF
-from io import BytesIO
-from supabase_utils import supabase
-
-# 🎨 فونت فارسی
-font_path = "fonts/Vazir.ttf"
-font_prop = font_manager.FontProperties(fname=font_path)
-plt.rcParams["font.family"] = font_prop.get_name()
-plt.rcParams["axes.unicode_minus"] = False
-
-
 def show_student_panel(username):
+    import streamlit as st
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from matplotlib import font_manager
+    from fpdf import FPDF
+    from io import BytesIO
+    import tempfile
+    from supabase_utils import supabase
+
+    # 🎨 فونت فارسی
+    font_path = "fonts/Vazir.ttf"
+    font_prop = font_manager.FontProperties(fname=font_path)
+    plt.rcParams["font.family"] = font_prop.get_name()
+    plt.rcParams["axes.unicode_minus"] = False
+
     st.title("🎓 پنل دانش‌آموز")
 
-    # 📌 مرحله ۱: دریافت اطلاعات دانش‌آموز از جدول students
+    # 📌 دریافت اطلاعات دانش‌آموز
     student_response = supabase.table("students").select("*").eq("نام_کاربر", username).execute()
-
     if not student_response.data:
         st.error("❌ اطلاعات دانش‌آموز پیدا نشد.")
         return
@@ -611,7 +610,7 @@ def show_student_panel(username):
     class_name = student_info.get("کلاس", "نامشخص")
     grade = student_info.get("پایه", "نامشخص")
 
-    # نمایش اطلاعات پایه
+    # 🧾 اطلاعات پایه
     st.markdown(f"""
     **👤 نام دانش‌آموز:** {full_name}  
     **🏫 مدرسه:** {school_name}  
@@ -620,38 +619,53 @@ def show_student_panel(username):
     """)
     st.divider()
 
-    # 📚 مرحله ۲: گرفتن نمرات از جدول scores
-    # 📚 مرحله ۲: گرفتن نمرات از جدول scores
-    full_name = st.session_state["user"].get("student", "ناشناس")
+    # 📚 گرفتن نمرات
     scores_response = supabase.table("scores").select("درس, نمره").eq("student", full_name).execute()
-
     if not scores_response.data:
         st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
         return
 
     scores_df = pd.DataFrame(scores_response.data)
-    st.subheader("📋 کارنامه نمرات شما")
-    st.dataframe(scores_df)
 
-    # 📈 نمودار خطی
-    fig_line, ax_line = plt.subplots()
-    ax_line.plot(scores_df["درس"], scores_df["نمره"], marker="o")
-    ax_line.set_title("📈 پیشرفت تحصیلی", fontproperties=font_prop)
-    ax_line.set_xlabel("درس", fontproperties=font_prop)
-    ax_line.set_ylabel("نمره", fontproperties=font_prop)
-    ax_line.set_ylim(0.5, 4.5)
-    plt.xticks(rotation=45, fontproperties=font_prop)
-    st.pyplot(fig_line)
-
-    # 🎯 نمودار دایره‌ای
-    st.subheader("🎯 توزیع سطح عملکرد شما")
-
+    # 🎯 تعیین سطح عملکرد
     def categorize(score):
-        return {1: "نیاز به تلاش بیشتر", 2: "قابل قبول", 3: "خوب", 4: "خیلی خوب"}.get(score, "نامشخص")
+        try:
+            score = int(score)
+            if score == 1:
+                return "نیاز به تلاش بیشتر"
+            elif score == 2:
+                return "قابل قبول"
+            elif score == 3:
+                return "خوب"
+            elif score == 4:
+                return "خیلی خوب"
+            else:
+                return "نامشخص"
+        except:
+            return "نامشخص"
 
     scores_df["سطح عملکرد"] = scores_df["نمره"].apply(categorize)
-    performance_counts = scores_df["سطح عملکرد"].value_counts()
 
+    # 📋 جدول نمرات
+    st.subheader("📋 کارنامه تحصیلی")
+    st.dataframe(scores_df, use_container_width=True)
+
+    # 📈 نمودار خطی زیبا (پیشرفت نمرات)
+    st.subheader("📈 روند پیشرفت در دروس")
+    fig_line, ax_line = plt.subplots(figsize=(7, 4))
+    ax_line.plot(scores_df["درس"], scores_df["نمره"], marker="o", color="#4a90e2", linewidth=2)
+    for i, v in enumerate(scores_df["نمره"]):
+        ax_line.text(i, v + 0.1, str(v), ha='center', fontproperties=font_prop)
+    ax_line.set_ylim(0.5, 4.5)
+    ax_line.set_xlabel("درس", fontproperties=font_prop)
+    ax_line.set_ylabel("نمره", fontproperties=font_prop)
+    ax_line.set_title("نمودار پیشرفت تحصیلی", fontproperties=font_prop)
+    plt.xticks(rotation=30, fontproperties=font_prop)
+    st.pyplot(fig_line)
+
+    # 🥧 نمودار دایره‌ای عملکرد
+    st.subheader("🎯 توزیع سطح عملکرد")
+    performance_counts = scores_df["سطح عملکرد"].value_counts()
     fig_pie, ax_pie = plt.subplots()
     wedges, texts, autotexts = ax_pie.pie(
         performance_counts,
@@ -662,52 +676,43 @@ def show_student_panel(username):
     )
     for t in texts + autotexts:
         t.set_fontproperties(font_prop)
-    ax_pie.set_title("توزیع سطح عملکرد", fontproperties=font_prop)
+    ax_pie.set_title("سطوح عملکرد کلی", fontproperties=font_prop)
     st.pyplot(fig_pie)
 
-    st.success("✅ گزارش نمرات و نمودارها با موفقیت نمایش داده شدند.")
-
-    # 📄 مرحله ۳: ساخت فایل PDF برای دانلود
+    # ✅ ساخت PDF با فونت فارسی
     pdf = FPDF()
     pdf.add_page()
     pdf.add_font("Vazir", "", "fonts/Vazir.ttf", uni=True)
     pdf.set_font("Vazir", "", 14)
-
-    pdf.cell(0, 10, txt="کارنامه تحصیلی", ln=True, align="C")
+    pdf.cell(0, 10, txt="📋 کارنامه تحصیلی", ln=True, align="C")
     pdf.ln(5)
     pdf.set_font("Vazir", "", 12)
     pdf.multi_cell(0, 10, txt=f"نام دانش‌آموز: {full_name}\nمدرسه: {school_name}\nپایه: {grade}\nکلاس: {class_name}", align="R")
     pdf.ln(10)
 
-    # جدول نمرات
     pdf.cell(80, 10, txt="درس", border=1, align="C")
     pdf.cell(40, 10, txt="نمره", border=1, align="C")
     pdf.cell(60, 10, txt="سطح عملکرد", border=1, align="C")
     pdf.ln()
-
     for _, row in scores_df.iterrows():
         pdf.cell(80, 10, txt=row["درس"], border=1, align="C")
         pdf.cell(40, 10, txt=str(row["نمره"]), border=1, align="C")
         pdf.cell(60, 10, txt=row["سطح عملکرد"], border=1, align="C")
         pdf.ln()
 
-    # ذخیره نمودارها در حافظه
-    img_buf_line = BytesIO()
-    fig_line.savefig(img_buf_line, format="png", bbox_inches="tight")
-    img_buf_line.seek(0)
+    # 🔧 ذخیره نمودارها در فایل موقت و افزودن به PDF
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_line:
+        fig_line.savefig(tmp_line.name, bbox_inches="tight", dpi=200)
+        pdf.image(tmp_line.name, x=25, w=160)
 
-    img_buf_pie = BytesIO()
-    fig_pie.savefig(img_buf_pie, format="png", bbox_inches="tight")
-    img_buf_pie.seek(0)
-
-    pdf.ln(10)
-    pdf.image(img_buf_line, x=25, w=160)
     pdf.add_page()
-    pdf.image(img_buf_pie, x=25, w=160)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_pie:
+        fig_pie.savefig(tmp_pie.name, bbox_inches="tight", dpi=200)
+        pdf.image(tmp_pie.name, x=25, w=160)
 
-    # ذخیره و دکمه دانلود
+    # 📥 خروجی PDF
     pdf_output = BytesIO()
-    pdf.output(pdf_output)
+    pdf.output(pdf_output, dest="S")
     pdf_output.seek(0)
 
     st.download_button(
@@ -716,6 +721,8 @@ def show_student_panel(username):
         file_name=f"کارنامه_{full_name}.pdf",
         mime="application/pdf"
     )
+
+    st.success("✅ گزارش نمرات و نمودارها با موفقیت نمایش داده شدند.")
 
 # -------------------------------
 # تابع آمار آموزگار برای مدیر/معاون
@@ -766,6 +773,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
