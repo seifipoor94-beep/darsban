@@ -27,15 +27,81 @@ plt.rcParams["font.family"] = font_prop.get_name()
 plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
+# --------------------------------------------------------------------------
+# 📐 تنظیم راست‌چین سراسری و افزودن دکمه کاستوم Sidebar (RTL Mobile Fix)
+# --------------------------------------------------------------------------
 st.markdown("""
+    <script>
+    // تابع جاوااسکریپت برای باز کردن Sidebar با کلیک روی دکمه کاستوم
+    function openSidebar() {
+        // پیدا کردن و کلیک کردن روی دکمه مخفی پیش‌فرض Streamlit 
+        const sidebarToggle = window.parent.document.querySelector('[data-testid="stSidebarToggle"]');
+        if (sidebarToggle) {
+            sidebarToggle.click();
+        }
+    }
+    </script>
     <style>
-    body, div, p, h1, h2, h3, h4, h5, h6 {
+    /* تنظیم فونت و جهت برای تمام عناصر Streamlit */
+    body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button, th, td {
+        direction: rtl !important;
+        text-align: right !important;
+        font-family: 'Vazir', sans-serif !important; 
+    }
+    /* راست‌چین کردن متن و هدرهای ستون‌های جدول Streamlit */
+    .stDataFrame, .stDataFrame .header {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    /* اجزای فرم (ورودی‌ها، کشوها) */
+    .stSelectbox, .stTextInput, .stButton, .stTextarea {
         direction: rtl;
         text-align: right;
-        font-family: 'Vazir', sans-serif;
     }
+    
+    /* 💡 اصلاحات ضروری برای نمایش Sidebar در موبایل (RTL) 💡 */
+    
+    /* ۱. پنهان کردن دکمه پیش‌فرض Streamlit (که کیبورد دابل ارو را نمایش می‌دهد) */
+    [data-testid="stSidebarToggle"] {
+        visibility: hidden;
+    }
+    
+    /* ۲. دکمه باز کردن کاستوم در گوشه راست بالا (برای موبایل و دسکتاپ) */
+    .custom-sidebar-open-button {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000; 
+        background-color: #f0f2f6; /* رنگ پس زمینه Streamlit */
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 20px;
+        direction: rtl; 
+        text-align: center;
+        color: #4b4b4b;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    }
+
+    /* ۳. تنظیم جهت برای کل محتوای سایدبار (محتوای داخلی) */
+    [data-testid="stSidebar"] {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    /* ۴. راست‌چین کردن محتوای داخلی نوار کناری (عناصر) */
+    [data-testid="stSidebar"] * {
+        direction: rtl;
+        text-align: right;
+    }
+    
     </style>
-""", unsafe_allow_html=True)
+    <div class="custom-sidebar-open-button" onclick="openSidebar()">
+        ☰ منو
+    </div>
+    """, unsafe_allow_html=True)
+# --------------------------------------------------------------------------
 
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
@@ -1358,6 +1424,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
