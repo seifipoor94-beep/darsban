@@ -28,83 +28,47 @@ plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
 st.markdown("""
-    <style>
-    /* 1. تنظیمات RTL سراسری */
-    body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button, th, td {
-        direction: rtl !important;
-        text-align: right !important;
-        font-family: 'Vazir', sans-serif !important; 
-    }
-    .stDataFrame, .stDataFrame .header {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    .stSelectbox, .stTextInput, .stButton, .stTextarea {
-        direction: rtl;
-        text-align: right;
-    }
-    
-    /* 💡 اصلاحات نهایی و تهاجمی برای Sidebar 💡 */
-
-    /* جابجایی دکمه همبرگری Streamlit به گوشه راست بالا */
-    [data-testid="stSidebarToggle"] {
-        visibility: visible !important;
-        
-        position: fixed;
-        top: 10px !important; 
-        right: 10px !important;
-        left: auto !important; /* لغو موقعیت پیش‌فرض از چپ */
-        z-index: 99999; 
-        
-        /* استایل‌های بصری جدید برای دکمه */
-        background-color: #f0f2f6; 
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 5px 10px;
-        cursor: pointer;
-        display: flex; /* برای تراز کردن محتوا */
-        align-items: center;
-        justify-content: center;
-        transition: none !important; /* حذف انیمیشن‌های مزاحم */
-        
-        /* نمایش در تمام حالت‌ها (هم دسکتاپ هم موبایل) */
-    }
-
-    /* پنهان کردن متن یا آیکون‌های اضافی Streamlit (مثل فلش‌ها یا متن کیبورد) که کنار ☰ می‌آیند */
-    [data-testid="stSidebarToggle"] > div {
-        display: none !important; 
-    }
-    
-    /* افزودن متن "منو" بعد از آیکون همبرگری (با استفاده از Pseudo-element) */
-    [data-testid="stSidebarToggle"]::after {
-        content: " منو"; /* فضای قبل از منو برای جدا کردن از آیکون */
+<style>
+/* ✅ اصلاح نمایش سایدبار در موبایل */
+@media (max-width: 768px) {
+    section[data-testid="stSidebar"] {
+        width: 75vw !important;
+        min-width: 250px !important;
         font-family: 'Vazir', sans-serif !important;
-        font-size: 16px;
-        color: #4b4b4b;
-        margin-right: 5px; /* کمی فاصله از آیکون */
+        direction: rtl !important;
+        text-align: right !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
     }
 
-    /* تنظیم جهت برای کل محتوای سایدبار (محتوای داخلی) */
-    [data-testid="stSidebar"] {
-        direction: rtl;
-        text-align: right;
-    }
-    
-    /* راست‌چین کردن محتوای داخلی نوار کناری (عناصر) */
-    [data-testid="stSidebar"] * {
-        direction: rtl;
-        text-align: right;
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3, 
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] div {
+        font-size: 16px !important;
+        line-height: 1.8 !important;
+        letter-spacing: 0 !important;
+        word-spacing: normal !important;
+        display: block !important;
     }
 
-    /* افزودن پدینگ به محتوای اصلی برای جلوگیری از تداخل با دکمه در بالا/راست */
-    @media (max-width: 768px) {
-        [data-testid="stAppViewBlockContainer"] {
-            padding-top: 50px; 
-        }
+    /* جلوگیری از نمایش عمودی حروف */
+    section[data-testid="stSidebar"] * {
+        writing-mode: horizontal-tb !important;
+        text-orientation: mixed !important;
     }
-    
-    </style>
-    """, unsafe_allow_html=True)
+}
+
+/* ✅ برای دسکتاپ هم فونت و راست‌چین تنظیم شود */
+section[data-testid="stSidebar"] {
+    font-family: 'Vazir', sans-serif !important;
+    direction: rtl !important;
+    text-align: right !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
     from matplotlib import font_manager
@@ -1426,6 +1390,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
