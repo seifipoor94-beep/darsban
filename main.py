@@ -27,47 +27,82 @@ plt.rcParams["font.family"] = font_prop.get_name()
 plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
+# 🌸 نوار کناری زیبا و باز/بسته‌شونده مخصوص موبایل و دسکتاپ
 st.markdown("""
 <style>
-/* ✅ اصلاح نمایش سایدبار در موبایل */
+/* 🔹 حذف دکمه پیش‌فرض Streamlit */
+button[kind="header"] svg[data-testid="stSidebarCollapseControl"] {
+    display: none !important;
+}
+
+/* 🔹 ساخت دکمه سفارشی برای باز/بستن */
+#custom-sidebar-toggle {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 9999;
+    background-color: #007ACC;
+    color: white;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+#custom-sidebar-toggle:hover {
+    background-color: #005fa3;
+}
+
+/* 🔹 تنظیمات سایدبار برای موبایل */
 @media (max-width: 768px) {
     section[data-testid="stSidebar"] {
-        width: 75vw !important;
-        min-width: 250px !important;
-        font-family: 'Vazir', sans-serif !important;
-        direction: rtl !important;
-        text-align: right !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        background-color: white;
+        box-shadow: -3px 0 8px rgba(0,0,0,0.2);
+        z-index: 1000;
     }
-
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3, 
-    section[data-testid="stSidebar"] p, 
-    section[data-testid="stSidebar"] div {
-        font-size: 16px !important;
-        line-height: 1.8 !important;
-        letter-spacing: 0 !important;
-        word-spacing: normal !important;
-        display: block !important;
-    }
-
-    /* جلوگیری از نمایش عمودی حروف */
-    section[data-testid="stSidebar"] * {
-        writing-mode: horizontal-tb !important;
-        text-orientation: mixed !important;
+    section[data-testid="stSidebar"].active {
+        transform: translateX(0);
     }
 }
 
-/* ✅ برای دسکتاپ هم فونت و راست‌چین تنظیم شود */
+/* ✅ فونت و راست‌چینی برای همه حالت‌ها */
 section[data-testid="stSidebar"] {
     font-family: 'Vazir', sans-serif !important;
     direction: rtl !important;
     text-align: right !important;
 }
 </style>
+
+<!-- 🔹 دکمه HTML برای باز/بستن -->
+<button id="custom-sidebar-toggle">☰</button>
+
+<script>
+const toggleBtn = document.getElementById('custom-sidebar-toggle');
+const sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"]');
+let sidebarOpen = false;
+
+toggleBtn.addEventListener('click', () => {
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+        sidebarOpen = !sidebarOpen;
+        toggleBtn.textContent = sidebarOpen ? '✕' : '☰';
+    }
+});
+</script>
 """, unsafe_allow_html=True)
+
 
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
@@ -1390,6 +1425,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
