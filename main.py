@@ -27,13 +27,21 @@ plt.rcParams["font.family"] = font_prop.get_name()
 plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
-# 📌 نوار کناری کشویی در Streamlit
+# 📦 بررسی وجود کاربر در session
+if "user" in st.session_state:
+    user = st.session_state["user"]
+    full_name = user.get("نام_کامل") or user.get("student") or "کاربر"
+else:
+    user = {}
+    full_name = "کاربر"
+
+# 📌 نوار کناری کشویی
 with st.sidebar:
     show_sidebar = st.toggle("📂 نمایش منوی اصلی", value=True)
 
 if show_sidebar:
     st.sidebar.title("منوی اصلی")
-    st.sidebar.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**")
+    st.sidebar.markdown(f"👋 خوش آمدی، **{full_name}**")
 
     if st.sidebar.button("🚪 خروج از سامانه"):
         st.session_state.pop("user", None)
@@ -1401,6 +1409,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
