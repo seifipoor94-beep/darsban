@@ -12,4 +12,4 @@ python-bidi
 arabic_reshaper
 jdatetime
 supabase
-
+weasyprint
