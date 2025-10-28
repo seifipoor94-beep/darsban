@@ -28,99 +28,83 @@ plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
 st.markdown("""
-    <script>
-    // تابع جاوااسکریپت برای باز کردن Sidebar با کلیک روی دکمه کاستوم
-    function openSidebar() {
-        // پیدا کردن و کلیک کردن روی دکمه مخفی پیش‌فرض Streamlit 
-        const sidebarToggle = window.parent.document.querySelector('[data-testid="stSidebarToggle"]');
-        if (sidebarToggle) {
-            sidebarToggle.click();
-        }
-    }
-    </script>
     <style>
-    /* تنظیم فونت و جهت برای تمام عناصر Streamlit */
+    /* 1. تنظیمات RTL سراسری */
     body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button, th, td {
         direction: rtl !important;
         text-align: right !important;
         font-family: 'Vazir', sans-serif !important; 
     }
-    /* راست‌چین کردن متن و هدرهای ستون‌های جدول Streamlit */
     .stDataFrame, .stDataFrame .header {
         direction: rtl !important;
         text-align: right !important;
     }
-    /* اجزای فرم (ورودی‌ها، کشوها) */
     .stSelectbox, .stTextInput, .stButton, .stTextarea {
         direction: rtl;
         text-align: right;
     }
     
-    /* 💡 اصلاحات ضروری برای نمایش Sidebar در موبایل (RTL) 💡 */
-    
-    /* ۱. پنهان کردن دکمه پیش‌فرض Streamlit به‌طور کامل */
+    /* 💡 اصلاحات نهایی و تهاجمی برای Sidebar 💡 */
+
+    /* جابجایی دکمه همبرگری Streamlit به گوشه راست بالا */
     [data-testid="stSidebarToggle"] {
-        display: none !important;
+        visibility: visible !important;
+        
+        position: fixed;
+        top: 10px !important; 
+        right: 10px !important;
+        left: auto !important; /* لغو موقعیت پیش‌فرض از چپ */
+        z-index: 99999; 
+        
+        /* استایل‌های بصری جدید برای دکمه */
+        background-color: #f0f2f6; 
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+        display: flex; /* برای تراز کردن محتوا */
+        align-items: center;
+        justify-content: center;
+        transition: none !important; /* حذف انیمیشن‌های مزاحم */
+        
+        /* نمایش در تمام حالت‌ها (هم دسکتاپ هم موبایل) */
+    }
+
+    /* پنهان کردن متن یا آیکون‌های اضافی Streamlit (مثل فلش‌ها یا متن کیبورد) که کنار ☰ می‌آیند */
+    [data-testid="stSidebarToggle"] > div {
+        display: none !important; 
     }
     
-    /* ۲. تنظیم جهت برای کل محتوای سایدبار (محتوای داخلی) */
+    /* افزودن متن "منو" بعد از آیکون همبرگری (با استفاده از Pseudo-element) */
+    [data-testid="stSidebarToggle"]::after {
+        content: " منو"; /* فضای قبل از منو برای جدا کردن از آیکون */
+        font-family: 'Vazir', sans-serif !important;
+        font-size: 16px;
+        color: #4b4b4b;
+        margin-right: 5px; /* کمی فاصله از آیکون */
+    }
+
+    /* تنظیم جهت برای کل محتوای سایدبار (محتوای داخلی) */
     [data-testid="stSidebar"] {
         direction: rtl;
         text-align: right;
     }
     
-    /* ۳. راست‌چین کردن محتوای داخلی نوار کناری (عناصر) */
+    /* راست‌چین کردن محتوای داخلی نوار کناری (عناصر) */
     [data-testid="stSidebar"] * {
         direction: rtl;
         text-align: right;
     }
 
-    /* 👇👇👇 کنترل دکمه کاستوم با Media Query (فقط برای موبایل) 👇👇👇 */
-    
-    /* پنهان کردن دکمه کاستوم به‌طور پیش‌فرض (برای دسکتاپ) */
-    .custom-sidebar-open-button {
-        display: none;
-    }
-    
-    /* نمایش دکمه کاستوم فقط در صفحه‌های با عرض کوچک (موبایل) */
+    /* افزودن پدینگ به محتوای اصلی برای جلوگیری از تداخل با دکمه در بالا/راست */
     @media (max-width: 768px) {
-        .custom-sidebar-open-button {
-            display: flex; /* استفاده از فلکس برای تراز کردن "☰" و "منو" */
-            align-items: center; /* تراز عمودی */
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000; 
-            background-color: #f0f2f6; 
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 20px;
-            direction: rtl; 
-            text-align: center;
-            color: #4b4b4b;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-        }
-        
-        .custom-sidebar-open-button span {
-            margin-right: 5px; /* فاصله بین ☰ و منو */
-            font-size: 18px;
-        }
-
-        /* افزودن پدینگ به محتوای اصلی برای جلوگیری از تداخل با دکمه در بالا/راست */
         [data-testid="stAppViewBlockContainer"] {
             padding-top: 50px; 
         }
     }
-    /* 👆👆👆 پایان اصلاح Media Query 👆👆👆 */
     
     </style>
-    <div class="custom-sidebar-open-button" onclick="openSidebar()">
-        ☰ <span>منو</span>
-    </div>
     """, unsafe_allow_html=True)
-
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
     from matplotlib import font_manager
@@ -1442,6 +1426,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
