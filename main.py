@@ -27,11 +27,7 @@ plt.rcParams["font.family"] = font_prop.get_name()
 plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
-# --------------------------------------------------------------------------
-
-# --------------------------------------------------------------------------
-
-def apply_farsi_style(ax, tst.markdown("""
+st.markdown("""
     <script>
     // تابع جاوااسکریپت برای باز کردن Sidebar با کلیک روی دکمه کاستوم
     function openSidebar() {
@@ -123,7 +119,9 @@ def apply_farsi_style(ax, tst.markdown("""
     <div class="custom-sidebar-open-button" onclick="openSidebar()">
         ☰ <span>منو</span>
     </div>
-    """, unsafe_allow_html=True)itle=None, xlabel=None, ylabel=None):
+    """, unsafe_allow_html=True)
+
+def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
     from matplotlib import font_manager
     font_path = "fonts/Vazir.ttf"
@@ -1444,8 +1442,6 @@ def app():
 
 if __name__ == "__main__":
     app()
-
-
 
 
 
