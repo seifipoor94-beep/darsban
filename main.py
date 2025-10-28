@@ -31,12 +31,23 @@ import streamlit as st
 
 st.markdown("""
 <style>
-/* حذف کامل سایدبار و دکمه‌ی پیش‌فرض Streamlit */
-section[data-testid="stSidebar"] {display: none !important;}
-button[kind="header"] svg {display: none !important;}
-button[kind="header"] {color: transparent !important; border: none !important; background: transparent !important;}
+/* 🚫 حذف کامل سایدبار و فضای رزروشده‌ی Streamlit */
+section[data-testid="stSidebar"], div[data-testid="stSidebarNav"], div[data-testid="collapsedControl"], button[kind="header"] {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 
-/* دکمه‌ی منوی سفارشی */
+/* حذف فضای رزرو شده برای سایدبار */
+div[data-testid="stSidebar"] + div {
+    margin-right: 0 !important;
+}
+
+/* ✅ دکمه‌ی منوی سفارشی */
 #menu-toggle {
     position: fixed;
     top: 15px;
@@ -49,7 +60,7 @@ button[kind="header"] {color: transparent !important; border: none !important; b
     border: none;
     font-size: 25px;
     cursor: pointer;
-    z-index: 10000;
+    z-index: 99999;
     transition: all 0.3s ease;
     box-shadow: 0 3px 8px rgba(0,0,0,0.3);
 }
@@ -58,7 +69,7 @@ button[kind="header"] {color: transparent !important; border: none !important; b
     transform: scale(1.05);
 }
 
-/* منوی کشویی */
+/* ✅ منوی کشویی */
 #customMenu {
     position: fixed;
     top: 0;
@@ -69,7 +80,7 @@ button[kind="header"] {color: transparent !important; border: none !important; b
     box-shadow: -4px 0 10px rgba(0,0,0,0.2);
     transition: right 0.35s ease-in-out;
     padding: 25px;
-    z-index: 9999;
+    z-index: 99998;
     direction: rtl;
     text-align: right;
     font-family: 'Vazir', sans-serif;
@@ -79,7 +90,7 @@ button[kind="header"] {color: transparent !important; border: none !important; b
     right: 0;
 }
 
-/* استایل آیتم‌های منو */
+/* آیتم‌های منو */
 #customMenu h3 {
     color: #007ACC;
     margin-bottom: 20px;
@@ -1455,6 +1466,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
