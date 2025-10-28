@@ -31,12 +31,12 @@ import streamlit as st
 
 st.markdown("""
 <style>
-/* پنهان کردن سایدبار پیش‌فرض استریم‌لیت */
-section[data-testid="stSidebar"] {
-    display: none !important;
-}
+/* حذف کامل سایدبار و دکمه‌ی پیش‌فرض Streamlit */
+section[data-testid="stSidebar"] {display: none !important;}
+button[kind="header"] svg {display: none !important;}
+button[kind="header"] {color: transparent !important; border: none !important; background: transparent !important;}
 
-/* دکمه‌ی بازکننده سایدبار */
+/* دکمه‌ی منوی سفارشی */
 #menu-toggle {
     position: fixed;
     top: 15px;
@@ -44,28 +44,30 @@ section[data-testid="stSidebar"] {
     background-color: #007ACC;
     color: white;
     border-radius: 50%;
-    width: 45px;
-    height: 45px;
+    width: 48px;
+    height: 48px;
     border: none;
-    font-size: 22px;
+    font-size: 25px;
     cursor: pointer;
     z-index: 10000;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
 }
 #menu-toggle:hover {
     background-color: #005fa3;
+    transform: scale(1.05);
 }
 
-/* منوی سفارشی */
+/* منوی کشویی */
 #customMenu {
     position: fixed;
     top: 0;
     right: -260px;
     width: 250px;
     height: 100%;
-    background-color: #f7f9fc;
-    box-shadow: -3px 0 8px rgba(0,0,0,0.2);
-    transition: right 0.3s ease-in-out;
+    background-color: #f9fbfd;
+    box-shadow: -4px 0 10px rgba(0,0,0,0.2);
+    transition: right 0.35s ease-in-out;
     padding: 25px;
     z-index: 9999;
     direction: rtl;
@@ -76,31 +78,47 @@ section[data-testid="stSidebar"] {
 #customMenu.active {
     right: 0;
 }
+
+/* استایل آیتم‌های منو */
 #customMenu h3 {
     color: #007ACC;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    border-bottom: 2px solid #cceeff;
+    padding-bottom: 10px;
 }
 #customMenu a {
     display: block;
     color: #333;
     text-decoration: none;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     font-size: 15px;
+    transition: color 0.2s;
 }
 #customMenu a:hover {
     color: #007ACC;
 }
+
+/* واکنش‌گرا برای موبایل */
+@media (max-width: 768px) {
+    #customMenu {
+        width: 80%;
+        right: -80%;
+    }
+}
 </style>
 
-<!-- دکمه منو -->
+<!-- دکمه منوی اصلی -->
 <button id="menu-toggle">☰</button>
 
-<!-- منوی سفارشی -->
+<!-- منوی کشویی سفارشی -->
 <div id="customMenu">
     <h3>📚 منوی اصلی</h3>
     <a href="#">🏠 صفحه اصلی</a>
-    <a href="#">📈 آمار نمرات</a>
+    <a href="#">📊 آمار کلی</a>
+    <a href="#">📈 پیشرفت دروس</a>
     <a href="#">📄 کارنامه</a>
+    <a href="#">⚙️ تنظیمات</a>
     <a href="#">🚪 خروج</a>
 </div>
 
@@ -115,8 +133,6 @@ toggle.addEventListener("click", () => {
 });
 </script>
 """, unsafe_allow_html=True)
-
-
 
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
@@ -1439,6 +1455,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
