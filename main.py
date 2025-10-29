@@ -27,65 +27,14 @@ plt.rcParams["font.family"] = font_prop.get_name()
 plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
-# 📦 بررسی وجود کاربر در session
-if "user" in st.session_state:
-    user = st.session_state["user"]
-    full_name = user.get("نام_کامل") or user.get("student") or "کاربر"
-else:
-    user = {}
-    full_name = "کاربر"
-
-# 📌 نوار کناری کشویی
-with st.sidebar:
-    show_sidebar = st.toggle("📂 نمایش منوی اصلی", value=True)
-
-if show_sidebar:
-    st.sidebar.title("منوی اصلی")
-    st.sidebar.markdown(f"👋 خوش آمدی، **{full_name}**")
-
-    if st.sidebar.button("🚪 خروج از سامانه"):
-        st.session_state.pop("user", None)
-        st.success("با موفقیت خارج شدید ✅")
-        st.rerun()
-
-# 🎨 استایل RTL و فونت فارسی برای کل صفحه و نوار کناری
 st.markdown("""
-<style>
-/* تنظیمات کلی برای فونت و راست‌چین */
-body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button {
-  direction: rtl !important;
-  text-align: right !important;
-  font-family: 'Vazir', sans-serif !important;
-  word-break: keep-all;
-}
-
-/* نوار کناری Streamlit */
-section[data-testid="stSidebar"] {
-  direction: rtl !important;
-  text-align: right !important;
-  font-family: 'Vazir', sans-serif !important;
-  padding: 1rem;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* جلوگیری از شکستن حروف فارسی */
-section[data-testid="stSidebar"] * {
-  white-space: normal !important;
-  word-spacing: normal !important;
-  letter-spacing: normal !important;
-}
-
-/* موبایل: نوار کناری تمام‌عرض و بدون سایه */
-@media screen and (max-width: 768px) {
-  section[data-testid="stSidebar"] {
-    width: 100% !important;
-    position: relative !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-}
-</style>
+    <style>
+    body, div, p, h1, h2, h3, h4, h5, h6 {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Vazir', sans-serif;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
@@ -1409,15 +1358,6 @@ def app():
 
 if __name__ == "__main__":
     app()
-
-
-
-
-
-
-
-
-
 
 
 
