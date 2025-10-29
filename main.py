@@ -29,7 +29,7 @@ plt.rcParams["axes.unicode_minus"] = False
 # 📐 تنظیم راست‌چین برای کل صفحه
 st.markdown("""
     <style>
-    /* 1. تنظیمات RTL سراسری (بدون تغییر) */
+    /* 1. تنظیمات RTL سراسری */
     body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button, th, td {
         direction: rtl !important;
         text-align: right !important;
@@ -44,43 +44,42 @@ st.markdown("""
         text-align: right;
     }
     
-    /* 💡 آخرین تلاش: جابجایی دکمه پیش‌فرض و پنهان کردن متن اضافی 💡 */
+    /* 💡 جابجایی دکمه پیش‌فرض Streamlit (فقط آیکون ☰) 💡 */
 
     /* الف. جابجایی دکمه همبرگری Streamlit به گوشه راست بالا */
     [data-testid="stSidebarToggle"] {
-        visibility: visible !important; /* دکمه اصلی باید دیده شود */
-        display: block !important;     /* اطمینان از نمایش */
+        visibility: visible !important;
         
-        position: fixed !important;    /* موقعیت ثابت */
-        top: 10px !important;          /* فاصله از بالا */
-        right: 10px !important;         /* فاصله از راست */
-        left: auto !important;          /* لغو موقعیت پیش‌فرض چپ */
-        z-index: 99999 !important;      /* اطمینان از قرارگیری روی همه چیز */
+        position: fixed !important; 
+        top: 10px !important; 
+        right: 10px !important; 
+        left: auto !important; /* لغو موقعیت پیش‌فرض چپ */
+        z-index: 99999 !important; 
         
-        /* استایل ظاهری (اختیاری) */
-        background-color: #f0f2f6; 
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 5px; /* تنظیم پدینگ */
-        width: auto; 
-        height: auto;
+        /* استایل ظاهری برای نمایش بهتر */
+        background-color: #f0f2f6 !important; 
+        border: 1px solid #ccc !important;
+        border-radius: 5px !important;
+        padding: 5px !important;
     }
 
-    /* ب. پنهان کردن متن یا آیکون‌های اضافی داخل دکمه (مثل فلش‌ها یا متن کیبورد) */
-    /* تلاش برای هدف قرار دادن عناصر داخلی رایج */
-    [data-testid="stSidebarToggle"] > div, /* پنهان کردن div داخلی */
-    [data-testid="stSidebarToggle"] span,  /* پنهان کردن متن span */
-    [data-testid="stSidebarToggle"] svg + div /* پنهان کردن div بعد از آیکون SVG */ {
-        display: none !important; /* پنهان کردن کامل این عناصر */
+    /* ب. پنهان کردن تمام محتوای اضافی داخل دکمه (مثل متن کیبورد و فلش‌ها) */
+    /* تلاش برای پنهان کردن عناصر داخلی به جز آیکون SVG */
+    [data-testid="stSidebarToggle"] > div,
+    [data-testid="stSidebarToggle"] span {
+        display: none !important;
     }
     
     /* ج. اطمینان از دیده شدن آیکون همبرگری (SVG) */
     [data-testid="stSidebarToggle"] svg {
-        display: block !important; /* آیکون باید دیده شود */
-        margin: auto; /* برای وسط‌چین کردن (اگر لازم باشد) */
+        display: block !important;
+        margin: auto !important;
+        width: 24px !important; /* اندازه آیکون */
+        height: 24px !important;
+        color: #4b4b4b !important; /* رنگ آیکون */
     }
 
-    /* د. تنظیم RTL برای محتوای داخلی سایدبار (بدون تغییر) */
+    /* د. تنظیم RTL برای محتوای داخلی سایدبار */
     [data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
@@ -90,7 +89,7 @@ st.markdown("""
         text-align: right !important;
     }
 
-    /* ه. افزودن پدینگ به محتوای اصلی در موبایل (برای جلوگیری از تداخل) */
+    /* ه. افزودن پدینگ به محتوای اصلی در موبایل */
     @media (max-width: 768px) {
         [data-testid="stAppViewBlockContainer"] {
             padding-top: 50px !important; 
@@ -1421,6 +1420,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
