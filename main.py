@@ -27,101 +27,77 @@ plt.rcParams["font.family"] = font_prop.get_name()
 plt.rcParams["axes.unicode_minus"] = False
 
 # 📐 تنظیم راست‌چین برای کل صفحه
-# 📐 تنظیم راست‌چین سراسری و افزودن دکمه کاستوم Sidebar (RTL Mobile Fix)
 st.markdown("""
-    <script>
-    // تابع جاوااسکریپت برای باز کردن Sidebar با کلیک روی دکمه کاستوم
-    function openSidebar() {
-        // پیدا کردن و کلیک کردن روی دکمه مخفی پیش‌فرض Streamlit
-        const sidebarToggle = window.parent.document.querySelector('[data-testid="stSidebarToggle"]');
-        if (sidebarToggle) {
-            sidebarToggle.click();
-        }
-    }
-    </script>
     <style>
-    /* 1. تنظیمات RTL سراسری */
-    /* اعمال RTL و فونت Vazir به تمام المان‌های متنی */
+    /* 1. تنظیمات RTL سراسری (بدون تغییر) */
     body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button, th, td {
         direction: rtl !important;
         text-align: right !important;
-        font-family: 'Vazir', sans-serif !important;
+        font-family: 'Vazir', sans-serif !important; 
     }
-    /* راست‌چین کردن متن و هدرهای ستون‌های جدول Streamlit */
     .stDataFrame, .stDataFrame .header {
         direction: rtl !important;
         text-align: right !important;
     }
-    /* اجزای فرم (ورودی‌ها, کشوها) */
     .stSelectbox, .stTextInput, .stButton, .stTextarea {
         direction: rtl;
         text-align: right;
     }
+    
+    /* 💡 آخرین تلاش: جابجایی دکمه پیش‌فرض و پنهان کردن متن اضافی 💡 */
 
-    /* 💡 اصلاحات ضروری برای Sidebar و دکمه کاستوم موبایل 💡 */
-
-    /* الف. پنهان کردن دکمه پیش‌فرض Streamlit (با آیکون دابل ارو) */
+    /* الف. جابجایی دکمه همبرگری Streamlit به گوشه راست بالا */
     [data-testid="stSidebarToggle"] {
-        display: none !important;
+        visibility: visible !important; /* دکمه اصلی باید دیده شود */
+        display: block !important;     /* اطمینان از نمایش */
+        
+        position: fixed !important;    /* موقعیت ثابت */
+        top: 10px !important;          /* فاصله از بالا */
+        right: 10px !important;         /* فاصله از راست */
+        left: auto !important;          /* لغو موقعیت پیش‌فرض چپ */
+        z-index: 99999 !important;      /* اطمینان از قرارگیری روی همه چیز */
+        
+        /* استایل ظاهری (اختیاری) */
+        background-color: #f0f2f6; 
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 5px; /* تنظیم پدینگ */
+        width: auto; 
+        height: auto;
     }
 
-    /* ب. تنظیم RTL اجباری برای کانتینر سایدبار */
-    /* این بخش تضمین می‌کند که سایدبار از راست باز شود و محتوایش راست‌چین باشد */
+    /* ب. پنهان کردن متن یا آیکون‌های اضافی داخل دکمه (مثل فلش‌ها یا متن کیبورد) */
+    /* تلاش برای هدف قرار دادن عناصر داخلی رایج */
+    [data-testid="stSidebarToggle"] > div, /* پنهان کردن div داخلی */
+    [data-testid="stSidebarToggle"] span,  /* پنهان کردن متن span */
+    [data-testid="stSidebarToggle"] svg + div /* پنهان کردن div بعد از آیکون SVG */ {
+        display: none !important; /* پنهان کردن کامل این عناصر */
+    }
+    
+    /* ج. اطمینان از دیده شدن آیکون همبرگری (SVG) */
+    [data-testid="stSidebarToggle"] svg {
+        display: block !important; /* آیکون باید دیده شود */
+        margin: auto; /* برای وسط‌چین کردن (اگر لازم باشد) */
+    }
+
+    /* د. تنظیم RTL برای محتوای داخلی سایدبار (بدون تغییر) */
     [data-testid="stSidebar"] {
         direction: rtl !important;
         text-align: right !important;
     }
-
-    /* ج. راست‌چین کردن محتوای داخلی نوار کناری (عناصر) */
     [data-testid="stSidebar"] * {
         direction: rtl !important;
         text-align: right !important;
     }
 
-    /* 👇👇👇 کنترل دکمه کاستوم با Media Query (فقط برای موبایل) 👇👇👇 */
-
-    /* پنهان کردن دکمه کاستوم به‌طور پیش‌فرض (برای دسکتاپ) */
-    .custom-sidebar-open-button {
-        display: none;
-    }
-
-    /* نمایش دکمه کاستوم فقط در صفحه‌های با عرض کوچک (موبایل: <= 768px) */
+    /* ه. افزودن پدینگ به محتوای اصلی در موبایل (برای جلوگیری از تداخل) */
     @media (max-width: 768px) {
-        .custom-sidebar-open-button {
-            display: flex; /* برای تراز کردن "☰" و "منو" */
-            align-items: center;
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background-color: #f0f2f6;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 20px;
-            direction: rtl;
-            text-align: center;
-            color: #4b4b4b;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .custom-sidebar-open-button span {
-            margin-right: 5px; /* فاصله بین ☰ و منو */
-            font-size: 18px;
-        }
-
-        /* افزودن پدینگ به محتوای اصلی برای جلوگیری از تداخل با دکمه در بالا/راست */
         [data-testid="stAppViewBlockContainer"] {
-            padding-top: 50px !important;
+            padding-top: 50px !important; 
         }
     }
-    /* 👆👆👆 پایان اصلاح Media Query 👆👆👆 */
-
+    
     </style>
-    <div class="custom-sidebar-open-button" onclick="openSidebar()">
-        ☰ <span>منو</span>
-    </div>
     """, unsafe_allow_html=True)
 
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
@@ -1445,6 +1421,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
