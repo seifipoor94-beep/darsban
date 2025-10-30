@@ -922,16 +922,15 @@ def show_overall_statistics(df):
 # -------------------------------
 # تابع اصلی (Router) - ماژولار شده
 # -------------------------------
-
 def show_teacher_panel(username):
     # تنظیمات کلی صفحه 
     if 'layout' not in st.session_state:
-         st.set_page_config(layout="wide")
-         st.session_state['layout'] = 'wide'
+        st.set_page_config(layout="wide")
+        st.session_state['layout'] = 'wide'
 
     st.title("👩‍🏫 پنل آموزگار")
 
-    # 📌 دریافت اطلاعات آموزگار و هندل کردن خطای اتصال به دیتابیس
+    # 📌 دریافت اطلاعات آموزگار و هندل کردن خطای اتصال به پایگاه داده
     try:
         teacher_info = supabase.table("users").select("نام_کامل, مدرسه").eq("نام_کاربر", username).limit(1).execute()
     except Exception as e:
@@ -940,7 +939,6 @@ def show_teacher_panel(username):
         school_name = "نامشخص"
         students_df = pd.DataFrame()
         scores_df = pd.DataFrame()
-        
     else:
         full_name = teacher_info.data[0]["نام_کامل"] if teacher_info.data else username
         school_name = teacher_info.data[0]["مدرسه"] if teacher_info.data else "نامشخص"
@@ -957,76 +955,52 @@ def show_teacher_panel(username):
             students_df = pd.DataFrame()
             scores_df = pd.DataFrame()
 
-
     # نمایش اطلاعات آموزگار
-    st.markdown(f'<div style="text-align: right; direction: rtl;"><b>👤 آموزگار:</b> {full_name} | <b>🏫 مدرسه:</b> {school_name}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="text-align: right; direction: rtl;">'
+        f'<b>👤 آموزگار:</b> {full_name} | <b>🏫 مدرسه:</b> {school_name}'
+        f'</div>', 
+        unsafe_allow_html=True
+    )
     st.divider()
 
-    # --- Navigation Selectbox (ماژولار کردن بخش‌ها در سایدبار) ---
+    # 🧭 پنل کشویی بالای صفحه (جایگزین نوار کناری)
     with st.expander("📋 باز کردن منوی پنل", expanded=True):
-    st.markdown("#### بخش مورد نظر خود را انتخاب کنید:")
-    menu_options_display = {
-        "management": "📝 مدیریت نمره و دانش‌آموز",
-        "reports": "📊 گزارش‌های فردی (دانش‌آموز - درس)",
-        "overall": "📈 آمار کلی کلاس",
-    }
-    menu_options_keys = list(menu_options_display.keys())
+        st.markdown("#### بخش مورد نظر خود را انتخاب کنید:")
 
-    selected_option_key = st.radio(
-        "انتخاب بخش:",
-        menu_options_keys,
-        format_func=lambda x: menu_options_display[x],
-        horizontal=True
-    )
+        menu_options_display = {
+            "management": "📝 مدیریت نمره و دانش‌آموز",
+            "reports": "📊 گزارش‌های فردی (دانش‌آموز - درس)",
+            "overall": "📈 آمار کلی کلاس",
+        }
+        menu_options_keys = list(menu_options_display.keys())
 
+        selected_option_key = st.radio(
+            "انتخاب بخش:",
+            menu_options_keys,
+            format_func=lambda x: menu_options_display[x],
+            horizontal=True
+        )
 
+    # نمایش بخش انتخاب‌شده
     st.header(menu_options_display[selected_option_key])
 
-    # --- نمایش محتوای بخش انتخاب شده ---
     if selected_option_key == "management":
         show_management_panel(full_name, school_name, students_df)
-    
+
     elif selected_option_key == "reports":
         if scores_df.empty:
             st.warning("برای مشاهده گزارش‌ها، ابتدا باید نمره‌ای ثبت کنید.")
         else:
             show_individual_reports(scores_df)
-            
+
     elif selected_option_key == "overall":
         if scores_df.empty:
             st.warning("برای مشاهده آمار کلی، ابتدا باید نمره‌ای ثبت کنید.")
         else:
             show_overall_statistics(scores_df)
 
-# -------------------------------------------------------------------------------------
-# **توجه: کد زیر مربوط به سایر بخش‌های برنامه شما (مانند پنل دانش‌آموز، مدیر و...) است**
-# **لطفاً این بخش‌ها را از فایل اصلی خودتان کپی کنید و در اینجا قرار دهید.**
-# -------------------------------------------------------------------------------------
 
-# def show_student_panel(username):
-#     # ... (کد پنل دانش‌آموز که قبلاً داشتید) ...
-#     pass
-
-# def show_superadmin_panel(username):
-#     # ... (کد پنل مدیر سامانه) ...
-#     pass
-
-# ... (سایر توابع پنل‌ها) ...
-
-# def main_dashboard(user):
-#     # ... (تابع مسیریاب شما) ...
-#     pass
-
-# def login_page():
-#     # ... (تابع ورود شما) ...
-#     pass
-
-# def app():
-#     # ... (تابع اصلی اجرای برنامه) ...
-#     pass
-
-# if __name__ == "__main__":
-#     app()
 # پنل دانش‌آموز + PDF کارنامه
 # -------------------------------
 import streamlit as st
@@ -1361,6 +1335,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
