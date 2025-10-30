@@ -43,56 +43,22 @@ st.markdown("""
         direction: rtl;
         text-align: right;
     }
-    
-    /* 💡 جابجایی دکمه پیش‌فرض Streamlit (فقط آیکون ☰) 💡 */
 
-    /* الف. جابجایی دکمه همبرگری Streamlit به گوشه راست بالا */
-    [data-testid="stSidebarToggle"] {
-        visibility: visible !important;
-        
-        position: fixed !important; 
-        top: 10px !important; 
-        right: 10px !important; 
-        left: auto !important; /* لغو موقعیت پیش‌فرض چپ */
-        z-index: 99999 !important; 
-        
-        /* استایل ظاهری برای نمایش بهتر */
-        background-color: #f0f2f6 !important; 
-        border: 1px solid #ccc !important;
-        border-radius: 5px !important;
-        padding: 5px !important;
-    }
-
-    /* ب. پنهان کردن تمام محتوای اضافی داخل دکمه (مثل متن کیبورد و فلش‌ها) */
-    /* تلاش برای پنهان کردن عناصر داخلی به جز آیکون SVG */
-    [data-testid="stSidebarToggle"] > div,
-    [data-testid="stSidebarToggle"] span {
-        display: none !important;
-    }
-    
-    /* ج. اطمینان از دیده شدن آیکون همبرگری (SVG) */
-    [data-testid="stSidebarToggle"] svg {
-        display: block !important;
-        margin: auto !important;
-        width: 24px !important; /* اندازه آیکون */
-        height: 24px !important;
-        color: #4b4b4b !important; /* رنگ آیکون */
-    }
-
-    /* د. تنظیم RTL برای محتوای داخلی سایدبار */
-    [data-testid="stSidebar"] {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    [data-testid="stSidebar"] * {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-
-    /* ه. افزودن پدینگ به محتوای اصلی در موبایل */
+    /* 💡 پنهان کردن Sidebar و دکمه‌های آن در ابعاد کوچک (موبایل) 💡 */
     @media (max-width: 768px) {
-        [data-testid="stAppViewBlockContainer"] {
-            padding-top: 50px !important; 
+        /* پنهان کردن کامل نوار کناری */
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        /* پنهان کردن دکمه همبرگری Streamlit */
+        [data-testid="stSidebarToggle"] {
+            display: none;
+        }
+    }
+    /* 💡 در ابعاد بزرگتر (دسکتاپ)، مطمئن می‌شویم Sidebar قابل مشاهده است */
+    @media (min-width: 769px) {
+        [data-testid="stSidebar"] {
+            display: block;
         }
     }
     
@@ -189,34 +155,65 @@ def register_user(username, password, role, fullname, school=None):
 # -------------------------------
 # داشبورد اصلی بعد از ورود
 # -------------------------------
-
 def main_dashboard(user):
     role = user["نقش"]
     username = user["نام_کاربر"]
+    
+    # تعیین اینکه آیا باید از منوی دسکتاپ (Sidebar) استفاده کرد یا موبایل
+    # از یک شرط ساده که فرض را بر روی عرض صفحه می‌گذارد استفاده می‌کنیم.
+    # توجه: Streamlit ابزاری برای تشخیص دقیق موبایل بودن ندارد، اما با پنهان کردن
+    # Sidebar در CSS، این منطق ناوبری داخلی فعال خواهد شد.
 
-    st.sidebar.title("منوی اصلی")
-    st.sidebar.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**")
-
-
-    # 🚪 دکمه خروج از سامانه
-    if st.sidebar.button("🚪 خروج از سامانه"):
-        st.session_state.pop("user", None)
-        st.success("با موفقیت خارج شدید ✅")
-        st.rerun()
-
-    # 📌 نمایش پنل مناسب بر اساس نقش
-    if role == "مدیر سامانه":
-        show_superadmin_panel(username)
-    elif role == "مدیر مدرسه":
-        show_school_admin_panel(username)
+    # ----------------------------------------------------
+    # 📱 ناوبری موبایل (در صورت پنهان بودن Sidebar)
+    # ----------------------------------------------------
+    if role == "مدیر":
+        panel_options = ["داشبورد مدیر مدرسه"]
     elif role == "معاون":
-        show_assistant_panel(username)
+        panel_options = ["داشبورد معاون مدرسه"]
     elif role == "آموزگار":
-        show_teacher_panel(username)
-    elif role == "دانش‌آموز":
-        show_student_panel(username)
+        panel_options = ["داشبورد آموزگار"]
+    elif role == "دانش آموز":
+        panel_options = ["گزارش نمرات فردی"]
     else:
-        st.error("نقش کاربر نامعتبر است!")
+        st.error("نقش کاربر نامشخص است.")
+        return
+
+    # استفاده از st.selectbox در بالای صفحه اصلی برای موبایل
+    selected_panel = st.selectbox(
+        "انتخاب پنل کاربری:", 
+        panel_options, 
+        key="mobile_panel_selector"
+    )
+    
+    # ----------------------------------------------------
+    # 💻 ناوبری دسکتاپ (فقط برای نمایش در Sidebar)
+    # ----------------------------------------------------
+    # این بخش در موبایل پنهان شده است و فقط در دسکتاپ دیده می‌شود.
+    with st.sidebar:
+        st.title("منوی اصلی")
+        st.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**")
+
+        # 🚪 دکمه خروج از سامانه
+        if st.button("🚪 خروج از سامانه"):
+            st.session_state.pop("user", None)
+            st.success("با موفقیت خارج شدید ✅")
+            st.rerun()
+
+    # ----------------------------------------------------
+    # فراخوانی پنل‌ها بر اساس انتخاب (چه از موبایل چه از دسکتاپ)
+    # ----------------------------------------------------
+    if selected_panel == "داشبورد مدیر مدرسه":
+        show_school_admin_panel(username)
+    elif selected_panel == "داشبورد معاون مدرسه":
+        show_assistant_panel(username)
+    elif selected_panel == "داشبورد آموزگار":
+        show_teacher_panel(username)
+    elif selected_panel == "گزارش نمرات فردی":
+        show_student_report(username)
+    else:
+        st.info("لطفاً پنل مورد نظر را انتخاب کنید.")
+
 
 # -------------------------------
 # صفحه ورود
@@ -1420,6 +1417,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
