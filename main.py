@@ -29,46 +29,13 @@ plt.rcParams["axes.unicode_minus"] = False
 # 📐 تنظیم راست‌چین برای کل صفحه
 st.markdown("""
     <style>
-    /* 1. تنظیمات RTL سراسری */
-    body, div, p, h1, h2, h3, h4, h5, h6, label, span, input, select, textarea, button, th, td {
-        direction: rtl !important;
-        text-align: right !important;
-        font-family: 'Vazir', sans-serif !important; 
-    }
-    .stDataFrame, .stDataFrame .header {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    .stSelectbox, .stTextInput, .stButton, .stTextarea {
+    body, div, p, h1, h2, h3, h4, h5, h6 {
         direction: rtl;
         text-align: right;
+        font-family: 'Vazir', sans-serif;
     }
-
-    /* 💡 پنهان کردن Sidebar و دکمه‌های آن در ابعاد کوچک (موبایل) 💡 */
-    @media (max-width: 768px) {
-        /* پنهان کردن کامل نوار کناری */
-        [data-testid="stSidebar"] {
-            display: none;
-        }
-        /* پنهان کردن دکمه همبرگری Streamlit */
-        [data-testid="stSidebarToggle"] {
-            display: none;
-        }
-        /* در موبایل، پدینگ چپ و راست را برای استفاده بهتر از عرض صفحه برمی‌داریم */
-        [data-testid="stAppViewBlockContainer"] {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-        }
-    }
-    /* 💡 در ابعاد بزرگتر (دسکتاپ)، مطمئن می‌شویم Sidebar قابل مشاهده است */
-    @media (min-width: 769px) {
-        [data-testid="stSidebar"] {
-            display: block;
-        }
-    }
-    
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 def apply_farsi_style(ax, title=None, xlabel=None, ylabel=None):
     """تنظیم فونت فارسی و راست‌چین برای نمودارهای Matplotlib"""
@@ -160,85 +127,35 @@ def register_user(username, password, role, fullname, school=None):
 # -------------------------------
 # داشبورد اصلی بعد از ورود
 # -------------------------------
-def main_dashboard(user_data):
-    # 1. بخش دفاعی: استخراج داده از لیست یا دیکشنری
-    user = {}
-    if isinstance(user_data, list) and user_data:
-        user = user_data[0]
-    elif isinstance(user_data, dict):
-        user = user_data
-    else:
-        st.error("❌ خطای جدی در بازیابی اطلاعات کاربر. لطفاً دوباره وارد شوید.")
-        if st.button("بازگشت به صفحه ورود"):
-             st.session_state.pop("user", None)
-             st.rerun()
-        return
 
-    # 2. استخراج اطلاعات و نرمال‌سازی فوق‌العاده قوی نقش
-    role_raw = user.get("نقش", "")
-    username = user.get("نام_کاربر")
-    
-    # 💥 نرمال‌سازی فوق‌العاده قوی: حذف تمام کاراکترهای نامرئی، فواصل اضافه، و تبدیل به استاندارد
-    normalized_role = role_raw.strip()
-    # حذف نیم‌فاصله، فاصله صفر عرض، و کاراکتر BOM که در فایل‌های متنی رایج است
-    normalized_role = normalized_role.replace('‌', '').replace('\u200c', '').replace('\ufeff', '').strip()
-    
-    # استفاده از نقش نرمال‌شده برای مقایسه
-    role = normalized_role 
-    
-    # 3. بررسی نهایی نقش
-    if not role:
-        st.error("❌ نقش کاربری برای حساب شما تعریف نشده است.")
-        return
+def main_dashboard(user):
+    role = user["نقش"]
+    username = user["نام_کاربر"]
 
-    # ----------------------------------------------------
-    # 📱 ناوبری موبایل و تعیین پنل
-    # ----------------------------------------------------
-    if role == "مدیر":
-        panel_options = ["داشبورد مدیر مدرسه"]
-    elif role == "معاون":
-        panel_options = ["داشبورد معاون مدرسه"]
-    elif role == "آموزگار":
-        panel_options = ["داشبورد آموزگار"]
-    elif role == "دانش آموز":
-        panel_options = ["گزارش نمرات فردی"]
-    else:
-        # اگر خطا داد، نقش دقیق دریافتی را به ما نشان می‌دهد
-        st.error(f"❌ نقش کاربری نامشخص است یا با مقادیر مورد انتظار مطابقت ندارد. (نقش دریافتی: '{role}')")
-        return
+    st.sidebar.title("منوی اصلی")
+    st.sidebar.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**")
 
-    # نمایش Selectbox در بالای صفحه اصلی
-    st.title("سامانه مدیریت نمرات")
-    selected_panel = st.selectbox(
-        "انتخاب پنل کاربری:", 
-        panel_options, 
-        key="main_panel_selector"
-    )
-    
-    # ----------------------------------------------------
-    # 💻 ناوبری دسکتاپ
-    # ----------------------------------------------------
-    with st.sidebar:
-        st.title("منوی اصلی")
-        st.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', username)}**")
 
-        # 🚪 دکمه خروج از سامانه
-        if st.button("🚪 خروج از سامانه"):
-            st.session_state.pop("user", None)
-            st.success("با موفقیت خارج شدید ✅")
-            st.rerun()
+    # 🚪 دکمه خروج از سامانه
+    if st.sidebar.button("🚪 خروج از سامانه"):
+        st.session_state.pop("user", None)
+        st.success("با موفقیت خارج شدید ✅")
+        st.rerun()
 
-    # ----------------------------------------------------
-    # 4. فراخوانی پنل‌ها
-    # ----------------------------------------------------
-    if selected_panel == "داشبورد مدیر مدرسه":
+    # 📌 نمایش پنل مناسب بر اساس نقش
+    if role == "مدیر سامانه":
+        show_superadmin_panel(username)
+    elif role == "مدیر مدرسه":
         show_school_admin_panel(username)
-    elif selected_panel == "داشبورد معاون مدرسه":
+    elif role == "معاون":
         show_assistant_panel(username)
-    elif selected_panel == "داشبورد آموزگار":
+    elif role == "آموزگار":
         show_teacher_panel(username)
-    elif selected_panel == "گزارش نمرات فردی":
-        show_student_report(username)
+    elif role == "دانش‌آموز":
+        show_student_panel(username)
+    else:
+        st.error("نقش کاربر نامعتبر است!")
+
 # -------------------------------
 # صفحه ورود
 # -------------------------------
@@ -1441,14 +1358,6 @@ def app():
 
 if __name__ == "__main__":
     app()
-
-
-
-
-
-
-
-
 
 
 
