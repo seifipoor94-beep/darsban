@@ -933,38 +933,9 @@ def show_teacher_panel(username):
         st.set_page_config(layout="wide")
         st.session_state['layout'] = 'wide'
 
-    # 🎓 عنوان و بخش بالایی
     st.title("👩‍🏫 پنل آموزگار")
 
-    # 🚪 دکمه خروج از سامانه در بالا سمت چپ
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        pass
-    with col2:
-        st.markdown(
-            """
-            <style>
-            .logout-button button {
-                background-color: #ff4b4b !important;
-                color: white !important;
-                font-weight: bold;
-                border-radius: 8px;
-                width: 100%;
-                height: 40px;
-                border: none;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        with st.container():
-            logout = st.button("🚪 خروج از سامانه", key="logout_button")
-            if logout:
-                st.session_state.pop("user", None)
-                st.success("با موفقیت خارج شدید ✅")
-                st.rerun()
-
-    # 📌 دریافت اطلاعات آموزگار
+    # 📌 دریافت اطلاعات آموزگار و هندل کردن خطای اتصال به پایگاه داده
     try:
         teacher_info = supabase.table("users").select("نام_کامل, مدرسه").eq("نام_کاربر", username).limit(1).execute()
     except Exception as e:
@@ -978,6 +949,7 @@ def show_teacher_panel(username):
         school_name = teacher_info.data[0]["مدرسه"] if teacher_info.data else "نامشخص"
 
         try:
+            # 📚 دریافت لیست دانش‌آموزان و نمرات 
             students_response = supabase.table("students").select("*").eq("آموزگار", full_name).execute()
             students_df = pd.DataFrame(students_response.data) if students_response.data else pd.DataFrame()
             
@@ -999,62 +971,68 @@ def show_teacher_panel(username):
         unsafe_allow_html=True
     )
 
-    # 🎨 CSS برای زیباسازی expander و رفع مشکل متن‌ها
+    # 🎨 CSS برای زیباتر کردن منوی بالای صفحه
     st.markdown("""
         <style>
-        /* رفع مشکل سه‌نقطه و نمایش کامل متن‌ها */
-        label > div[data-testid="stMarkdownContainer"] p {
-            overflow: visible !important;
-            white-space: normal !important;
-            text-overflow: unset !important;
-        }
-
-        /* ظاهر زیبا برای expander */
-        .streamlit-expanderHeader {
-            background-color: #4A90E2 !important;
-            color: white !important;
+        .menu-box {
+            background-color: #4A90E2;
+            color: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
             font-weight: bold;
-            font-size: 16px !important;
-            border-radius: 10px;
-            padding: 12px !important;
+            margin-bottom: 20px;
         }
-
-        /* استایل برای محتوای بازشده */
-        .streamlit-expanderContent {
-            background-color: #f9fafc !important;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px !important;
+        .menu-button {
+            background-color: white;
+            color: #4A90E2;
+            border: 2px solid #4A90E2;
+            border-radius: 8px;
+            padding: 8px 20px;
+            margin: 5px;
+            font-size: 15px;
+            font-weight: 600;
         }
-
-        /* راست‌چین کردن کل expander */
-        div[data-testid="stExpander"] * {
-            direction: rtl !important;
-            text-align: right !important;
-            font-family: 'Vazir', sans-serif !important;
+        .menu-button:hover {
+            background-color: #357ABD;
+            color: white;
+            border-color: #357ABD;
         }
         </style>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # 🧭 پنل کشویی بالای صفحه (جایگزین نوار کناری)
-    with st.expander("📋 باز کردن منوی پنل", expanded=True):
-        st.markdown("#### بخش مورد نظر خود را انتخاب کنید:")
+    # 🧭 ایجاد منوی بالای صفحه (به‌جای expander)
+    st.markdown('<div class="menu-box">بخش مورد نظر خود را انتخاب کنید:</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
 
-        menu_options_display = {
-            "management": "📝 مدیریت نمره و دانش‌آموز",
-            "reports": "📊 گزارش‌های فردی (دانش‌آموز - درس)",
-            "overall": "📈 آمار کلی کلاس",
-        }
-        menu_options_keys = list(menu_options_display.keys())
+    # ساخت سه دکمه برای انتخاب بخش
+    with col1:
+        btn1 = st.button("📝 مدیریت نمره و دانش‌آموز", key="management", use_container_width=True)
+    with col2:
+        btn2 = st.button("📊 گزارش‌های فردی", key="reports", use_container_width=True)
+    with col3:
+        btn3 = st.button("📈 آمار کلی کلاس", key="overall", use_container_width=True)
 
-        selected_option_key = st.radio(
-            " ",
-            menu_options_keys,
-            format_func=lambda x: menu_options_display[x],
-            horizontal=True
-        )
+    # تعیین بخش انتخاب‌شده
+    if "selected_option" not in st.session_state:
+        st.session_state["selected_option"] = "management"
 
-    # 🧩 نمایش بخش انتخاب‌شده
+    if btn1:
+        st.session_state["selected_option"] = "management"
+    elif btn2:
+        st.session_state["selected_option"] = "reports"
+    elif btn3:
+        st.session_state["selected_option"] = "overall"
+
+    selected_option_key = st.session_state["selected_option"]
+
+    # 🧩 نمایش محتوای بخش انتخاب‌شده
+    menu_options_display = {
+        "management": "📝 مدیریت نمره و دانش‌آموز",
+        "reports": "📊 گزارش‌های فردی (دانش‌آموز - درس)",
+        "overall": "📈 آمار کلی کلاس",
+    }
+
     st.header(menu_options_display[selected_option_key])
 
     if selected_option_key == "management":
@@ -1071,6 +1049,7 @@ def show_teacher_panel(username):
             st.warning("برای مشاهده آمار کلی، ابتدا باید نمره‌ای ثبت کنید.")
         else:
             show_overall_statistics(scores_df)
+
 
 
 # پنل دانش‌آموز + PDF کارنامه
@@ -1407,6 +1386,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
