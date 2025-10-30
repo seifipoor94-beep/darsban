@@ -960,66 +960,54 @@ def show_teacher_panel(username):
             students_df = pd.DataFrame()
             scores_df = pd.DataFrame()
 
-    # نمایش اطلاعات آموزگار
+    # 🧾 نمایش اطلاعات آموزگار
     st.markdown(
-        f'<div style="text-align: right; direction: rtl; font-size:16px;">'
-        f'<b>👤 آموزگار:</b> {full_name} | <b>🏫 مدرسه:</b> {school_name}'
-        f'</div>', 
+        f"""
+        <div style="text-align: right; direction: rtl; font-size:16px; background-color:#f0f2f6; 
+                    padding:10px 15px; border-radius:10px; margin-bottom:10px;">
+            <b>👤 آموزگار:</b> {full_name} &nbsp;&nbsp; | &nbsp;&nbsp; <b>🏫 مدرسه:</b> {school_name}
+        </div>
+        """, 
         unsafe_allow_html=True
     )
-    st.divider()
 
-    # ✨ حذف نوشته‌ی "Keyboard arrows" بالای رادیوباتن‌ها و زیباسازی پنل
+    # ✨ CSS برای حذف متن مزاحم و زیباسازی expander
     st.markdown("""
         <style>
-        div[data-baseweb="radio"] label div:nth-child(1) {
+        /* حذف پیام راهنمای کیبورد بالای گزینه‌های radio */
+        [data-testid="stMarkdownContainer"] p {
             display: none !important;
         }
+
+        /* استایل زیبا برای عنوان expander */
         .streamlit-expanderHeader {
             background-color: #4A90E2 !important;
             color: white !important;
             font-weight: bold;
+            font-size: 16px !important;
             border-radius: 10px;
-            padding: 10px !important;
+            padding: 12px !important;
         }
+
+        /* استایل برای محتوای بازشده‌ی expander */
         .streamlit-expanderContent {
             background-color: #f9fafc !important;
             border: 1px solid #e0e0e0;
             border-radius: 10px;
             padding: 15px !important;
         }
+
+        /* راست‌چین کردن متن داخل expander */
+        div[data-testid="stExpander"] * {
+            direction: rtl !important;
+            text-align: right !important;
+            font-family: 'Vazir', sans-serif !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     # 🧭 پنل کشویی بالای صفحه (جایگزین نوار کناری)
     with st.expander("📋 باز کردن منوی پنل", expanded=True):
-        st.markdown("""
-            <style>
-            [data-testid="stMarkdownContainer"] p {
-                display: none !important;
-            }
-            .streamlit-expanderHeader {
-                background-color: #4A90E2 !important;
-                color: white !important;
-                font-weight: bold;
-                font-size: 16px !important;
-                border-radius: 10px;
-                padding: 12px !important;
-            }
-            .streamlit-expanderContent {
-                background-color: #f9fafc !important;
-                border: 1px solid #e0e0e0;
-                border-radius: 10px;
-                padding: 15px !important;
-            }
-            div[data-testid="stExpander"] * {
-                direction: rtl !important;
-                text-align: right !important;
-                font-family: 'Vazir', sans-serif !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
         st.markdown("#### بخش مورد نظر خود را انتخاب کنید:")
 
         menu_options_display = {
@@ -1035,6 +1023,24 @@ def show_teacher_panel(username):
             format_func=lambda x: menu_options_display[x],
             horizontal=True
         )
+
+    # 🧩 نمایش بخش انتخاب‌شده
+    st.header(menu_options_display[selected_option_key])
+
+    if selected_option_key == "management":
+        show_management_panel(full_name, school_name, students_df)
+
+    elif selected_option_key == "reports":
+        if scores_df.empty:
+            st.warning("برای مشاهده گزارش‌ها، ابتدا باید نمره‌ای ثبت کنید.")
+        else:
+            show_individual_reports(scores_df)
+
+    elif selected_option_key == "overall":
+        if scores_df.empty:
+            st.warning("برای مشاهده آمار کلی، ابتدا باید نمره‌ای ثبت کنید.")
+        else:
+            show_overall_statistics(scores_df)
 
 
 # پنل دانش‌آموز + PDF کارنامه
@@ -1371,6 +1377,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
