@@ -963,19 +963,22 @@ def show_teacher_panel(username):
     st.divider()
 
     # --- Navigation Selectbox (ماژولار کردن بخش‌ها در سایدبار) ---
-    st.sidebar.title("بخش‌های پنل")
+    with st.expander("📋 باز کردن منوی پنل", expanded=True):
+    st.markdown("#### بخش مورد نظر خود را انتخاب کنید:")
     menu_options_display = {
         "management": "📝 مدیریت نمره و دانش‌آموز",
         "reports": "📊 گزارش‌های فردی (دانش‌آموز - درس)",
         "overall": "📈 آمار کلی کلاس",
     }
     menu_options_keys = list(menu_options_display.keys())
-    
-    selected_option_key = st.sidebar.selectbox(
-        "انتخاب بخش:", 
-        menu_options_keys, 
-        format_func=lambda x: menu_options_display[x] 
+
+    selected_option_key = st.radio(
+        "انتخاب بخش:",
+        menu_options_keys,
+        format_func=lambda x: menu_options_display[x],
+        horizontal=True
     )
+
 
     st.header(menu_options_display[selected_option_key])
 
@@ -1358,6 +1361,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
