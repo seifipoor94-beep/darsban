@@ -132,15 +132,19 @@ def main_dashboard(user):
     role = user["نقش"]
     username = user["نام_کاربر"]
 
-    st.sidebar.title("منوی اصلی")
-    st.sidebar.markdown(f"👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**")
+    # 👋 خوش‌آمدگویی در بالای صفحه
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown(
+            f"### 👋 خوش آمدی، **{user.get('نام_کامل', user.get('student', 'کاربر'))}**"
+        )
+    with col2:
+        if st.button("🚪 خروج از سامانه"):
+            st.session_state.pop("user", None)
+            st.success("با موفقیت خارج شدید ✅")
+            st.rerun()
 
-
-    # 🚪 دکمه خروج از سامانه
-    if st.sidebar.button("🚪 خروج از سامانه"):
-        st.session_state.pop("user", None)
-        st.success("با موفقیت خارج شدید ✅")
-        st.rerun()
+    st.divider()
 
     # 📌 نمایش پنل مناسب بر اساس نقش
     if role == "مدیر سامانه":
@@ -155,6 +159,7 @@ def main_dashboard(user):
         show_student_panel(username)
     else:
         st.error("نقش کاربر نامعتبر است!")
+
 
 # -------------------------------
 # صفحه ورود
@@ -1335,6 +1340,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
