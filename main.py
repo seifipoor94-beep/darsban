@@ -6,7 +6,16 @@ from fpdf import FPDF
 from supabase_utils import supabase
 import uuid
 import matplotlib.font_manager as fm  # برای فونت فارسی در نمودارها
-import arabic_reshaper
+import arabic_resfrom supabase import create_client, Client
+import os
+
+# تنظیمات Supabase از متغیرهای محیطی (Render.com)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# ایجاد کلاینت
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)haper
+
 from bidi.algorithm import get_display
 def fix_rtl(text):
     """اعمال الگوریتم BiDi برای تصحیح راست‌چین شدن متون فارسی/عربی."""
@@ -93,20 +102,21 @@ def delete_student(student_name):
 # -------------------------------
 # احراز هویت کاربر
 # -------------------------------
-def authenticate(username, password):
-    # 👑 جستجو در جدول users (مدیر، معاون، آموزگار)
-    response = supabase.table("users").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
-    if response.data:
-        return response.data[0]
-
-    # 🎓 جستجو در جدول students (دانش‌آموز)
-    response2 = supabase.table("students").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
-    if response2.data:
-        student = response2.data[0]
-        student["نقش"] = "دانش‌آموز"
-        return student
-
-    return None
+def authenticate(username: str, password: str):
+    try:
+        response = supabase.table("users")\
+            .select("*")\
+            .eq("نام_کاربر", username)\
+            .eq("رمز_عبور", password)\
+            .execute()
+        
+        if response.data:
+            return response.data[0]  # کاربر پیدا شد
+        else:
+            return None  # نام کاربری یا رمز اشتباه
+    except Exception as e:
+        st.error(f"خطا در اتصال به دیتابیس: {e}")
+        return None
 
 
 # -------------------------------
@@ -1514,6 +1524,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
