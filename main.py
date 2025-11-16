@@ -842,7 +842,7 @@ def show_management_panel(full_name, school_name, students_df):
     if st.button("ذخیره همه نمرات", key="save_all_grades"):
         saved = 0
         for _, row in edited_df.iterrows():
-            student = row["student  # type: ignore
+            student = row["student"] 
             for col in edited_df.columns[1:]:
                 score = row[col]
                 if pd.notna(score) and score > 0:
@@ -1518,6 +1518,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
