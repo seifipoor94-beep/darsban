@@ -7,6 +7,7 @@ from supabase_utils import supabase
 import uuid
 import matplotlib.font_manager as fm  # برای فونت فارسی در نمودارها
 import arabic_reshaper
+from streamlit_nej_datepicker import nej_date_picker
 from bidi.algorithm import get_display
 def fix_rtl(text):
     """اعمال الگوریتم BiDi برای تصحیح راست‌چین شدن متون فارسی/عربی."""
@@ -798,8 +799,7 @@ def show_management_panel(full_name, school_name, students_df):
     col_add1, col_add2 = st.columns([3, 1])
     with col_add2:
         if st.button("افزودن ستون تاریخ جدید"):
-            # استفاده از تقویم شمسی
-            from streamlit_nej-datepicker import nej_date_picker
+           
 
             new_jalali = nej_date_picker(
                 label="تاریخ جدید (شمسی):",
@@ -1518,6 +1518,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
