@@ -6,7 +6,8 @@ from fpdf import FPDF
 from supabase_utils import supabase
 import uuid
 import matplotlib.font_manager as fm  # برای فونت فارسی در نمودارها
-import arabic_resfrom supabase import create_client, Client
+import arabic_reshaper
+from supabase import create_client, Client
 import os
 
 # تنظیمات Supabase از متغیرهای محیطی (Render.com)
@@ -1524,6 +1525,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
