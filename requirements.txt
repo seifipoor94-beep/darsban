@@ -14,4 +14,4 @@ jdatetime
 supabase
 weasyprint
 jdatetime
-streamlit-nej-datepicker
+
