@@ -7,7 +7,7 @@ from supabase_utils import supabase
 import uuid
 import matplotlib.font_manager as fm  # برای فونت فارسی در نمودارها
 import arabic_reshaper
-from streamlit_nej_datepicker import nej_date_picker
+from streamlit_nej_datepicker import date_picker as nej_date_picker
 from bidi.algorithm import get_display
 def fix_rtl(text):
     """اعمال الگوریتم BiDi برای تصحیح راست‌چین شدن متون فارسی/عربی."""
@@ -1518,6 +1518,7 @@ def app():
 
 if __name__ == "__main__":
     app()
+
 
 
 
