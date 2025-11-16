@@ -7,16 +7,6 @@ from supabase_utils import supabase
 import uuid
 import matplotlib.font_manager as fm  # برای فونت فارسی در نمودارها
 import arabic_reshaper
-from supabase import create_client, Client
-import os
-
-# تنظیمات Supabase از متغیرهای محیطی (Render.com)
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-# ایجاد کلاینت
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)haper
-
 from bidi.algorithm import get_display
 def fix_rtl(text):
     """اعمال الگوریتم BiDi برای تصحیح راست‌چین شدن متون فارسی/عربی."""
@@ -103,21 +93,20 @@ def delete_student(student_name):
 # -------------------------------
 # احراز هویت کاربر
 # -------------------------------
-def authenticate(username: str, password: str):
-    try:
-        response = supabase.table("users")\
-            .select("*")\
-            .eq("نام_کاربر", username)\
-            .eq("رمز_عبور", password)\
-            .execute()
-        
-        if response.data:
-            return response.data[0]  # کاربر پیدا شد
-        else:
-            return None  # نام کاربری یا رمز اشتباه
-    except Exception as e:
-        st.error(f"خطا در اتصال به دیتابیس: {e}")
-        return None
+def authenticate(username, password):
+    # 👑 جستجو در جدول users (مدیر، معاون، آموزگار)
+    response = supabase.table("users").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
+    if response.data:
+        return response.data[0]
+
+    # 🎓 جستجو در جدول students (دانش‌آموز)
+    response2 = supabase.table("students").select("*").eq("نام_کاربر", username).eq("رمز_عبور", password).execute()
+    if response2.data:
+        student = response2.data[0]
+        student["نقش"] = "دانش‌آموز"
+        return student
+
+    return None
 
 
 # -------------------------------
@@ -647,256 +636,128 @@ def categorize(score):
 # -------------------------------
 # 1. ماژول مدیریت و ثبت نمره
 # -------------------------------
-import streamlit as st
-import pandas as pd
-import jdatetime
-from datetime import date
-import supabase
 
-# -------------------------------------------------
-# توابع کمکی تبدیل تاریخ شمسی ↔ میلادی
-# -------------------------------------------------
-def jalali_to_gregorian(jalali_str: str) -> str:
-    """1404/08/25 → 2025-11-16"""
-    try:
-        y, m, d = map(int, jalali_str.split("/"))
-        return jdatetime.date(y, m, d).togregorian().isoformat()
-    except:
-        return date.today().isoformat()
-
-def gregorian_to_jalali(gregorian_str: str) -> str:
-    """2025-11-16 → 1404/08/25"""
-    try:
-        dt = pd.to_datetime(gregorian_str).date()
-        return jdatetime.date.fromgregorian(date=dt).strftime("%Y/%m/%d")
-    except:
-        return jdatetime.date.today().strftime("%Y/%m/%d")
-
-def jalali_today() -> str:
-    return jdatetime.date.today().strftime("%Y/%m/%d")
-
-# -------------------------------------------------
-# تابع اصلی پنل مدیریت معلم
-# -------------------------------------------------
 def show_management_panel(full_name, school_name, students_df):
-    """شامل لیست دانش‌آموزان، افزودن دانش‌آموز، تغییر رمز، ثبت نمره و مدیریت نمرات به صورت جدول اکسل‌مانند با تاریخ شمسی."""
+    """شامل لیست دانش‌آموزان، افزودن دانش‌آموز، تغییر رمز، ثبت نمره و مدیریت نمرات."""
     
-    # لیست دانش‌آموزان
-    st.subheader("لیست دانش‌آموزان شما")
+    # 📚 لیست دانش‌آموزان
+    st.subheader("📚 لیست دانش‌آموزان شما")
     if not students_df.empty:
-        display_df = students_df[["student", "پایه", "کلاس", "مدرسه"]].copy()
-        display_df.rename(
+        # ✅ FIX: حذف fix_rtl از نام ستون‌ها
+        st.dataframe(students_df[["student", "پایه", "کلاس", "مدرسه"]].rename(
             columns={
                 "student": "دانش‌آموز",
                 "پایه": "پایه",
                 "کلاس": "کلاس",
-                "مدرسه": "مدرسه",
-            },
-            inplace=True,
-        )
-        st.dataframe(display_df, use_container_width=True)
+                "مدرسه": "مدرسه"
+            }
+        ))
     else:
         st.info("هنوز دانش‌آموزی برای شما ثبت نشده است.")
 
-    # افزودن دانش‌آموز جدید
-    st.subheader("افزودن دانش‌آموز جدید")
+    # ➕ افزودن دانش‌آموز
+    st.subheader("➕ افزودن دانش‌آموز جدید")
     col1, col2 = st.columns(2)
     with col1:
-        student_name = st.text_input("نام کامل دانش‌آموز:", key="add_student_name")
-        student_username = st.text_input("نام کاربری دانش‌آموز:", key="add_student_user")
+        student_name = st.text_input("نام کامل دانش‌آموز:")
+        student_username = st.text_input("نام کاربری دانش‌آموز:")
     with col2:
-        grade = st.selectbox(
-            "پایه:",
-            ["اول", "دوم", "سوم", "چهارم", "پنجم", "ششم"],
-            key="add_grade_new",
-        )
-        class_name = st.text_input("کلاس:", key="add_class")
+        grade = st.selectbox("پایه:", ["اول", "دوم", "سوم", "چهارم", "پنجم", "ششم"], key="grade_new")
+        class_name = st.text_input("کلاس:")
     school_name_input = st.text_input("نام مدرسه:", value=school_name, disabled=True)
-    student_password = st.text_input(
-        "رمز ورود دانش‌آموز:", type="password", key="add_student_pass"
-    )
+    student_password = st.text_input("رمز ورود دانش‌آموز:", type="password")
 
-    if st.button("ثبت دانش‌آموز", key="btn_register_student"):
+    if st.button("ثبت دانش‌آموز"):
         if student_name and student_username and student_password and class_name:
             try:
-                supabase.table("students").insert(
-                    {
-                        "student": student_name,
-                        "نام_کاربر": student_username,
-                        "رمز_عبور": student_password,
-                        "پایه": grade,
-                        "کلاس": class_name,
-                        "مدرسه": school_name_input,
-                        "آموزگار": full_name,
-                        "تاریخ_ثبت": date.today().isoformat(),
-                    }
-                ).execute()
-                st.success("دانش‌آموز با موفقیت ثبت شد.")
+                supabase.table("students").insert({
+                    "student": student_name,
+                    "نام_کاربر": student_username,
+                    "رمز_عبور": student_password, 
+                    "پایه": grade,
+                    "کلاس": class_name,
+                    "مدرسه": school_name_input,
+                    "آموزگار": full_name,
+                    "تاریخ_ثبت": datetime.date.today().isoformat()
+                }).execute()
+                st.success("✅ دانش‌آموز با موفقیت ثبت شد.")
                 st.rerun()
             except Exception as e:
-                st.error(f"خطا: نام کاربری تکراری یا مشکل پایگاه داده")
+                 st.error("❌ خطایی در ثبت دانش‌آموز رخ داد. (نام کاربری تکراری یا مشکل پایگاه داده)")
         else:
-            st.warning("لطفاً تمام فیلدها را پر کنید.")
+            st.warning("لطفاً تمام فیلدهای ضروری را پر کنید.")
 
-    # تغییر رمز ورود دانش‌آموز
-    st.subheader("تغییر رمز ورود دانش‌آموز")
+    # 🔐 تغییر رمز ورود دانش‌آموز
+    st.subheader("🔐 تغییر رمز ورود دانش‌آموز")
     if not students_df.empty:
         student_usernames = students_df["نام_کاربر"].dropna().tolist()
-        selected_user = st.selectbox(
-            "انتخاب دانش‌آموز:", student_usernames, key="change_pass_user"
-        )
-        new_password = st.text_input(
-            "رمز جدید:", type="password", key="new_student_pass"
-        )
+        selected_user = st.selectbox("انتخاب دانش‌آموز برای تغییر رمز:", student_usernames, key="change_pass_user")
+        new_password = st.text_input("رمز جدید:", type="password", key="new_student_pass")
         if st.button("ثبت رمز جدید", key="btn_change_pass"):
             if new_password:
-                supabase.table("students").update(
-                    {"رمز_عبور": new_password}
-                ).eq("نام_کاربر", selected_user).execute()
-                st.success("رمز با موفقیت تغییر کرد.")
+                supabase.table("students").update({"رمز_عبور": new_password}).eq("نام_کاربر", selected_user).execute() 
+                st.success("✅ رمز جدید با موفقیت ثبت شد.")
                 st.rerun()
             else:
                 st.warning("رمز جدید نمی‌تواند خالی باشد.")
     else:
-        st.info("هیچ دانش‌آموزی ثبت نشده است.")
+        st.info("هیچ دانش‌آموزی برای شما ثبت نشده است.")
 
-    # ثبت و مدیریت نمرات (جدول اکسل‌مانند + تاریخ شمسی)
-    st.subheader("ثبت و مدیریت نمرات (جدول اکسل‌مانند)")
-
-    if students_df.empty:
-        st.info("برای ثبت نمره، ابتدا دانش‌آموز اضافه کنید.")
-        return
-
-    # انتخاب درس
-    lesson = st.selectbox(
-        "انتخاب درس برای ثبت نمره:",
-        options=["ریاضی", "علوم", "ادبیات", "تاریخ", "قرآن", "ورزش"],
-        key="lesson_select",
-    )
-
-    # کلید یکتا برای session state
-    cache_key = f"grades_table_{full_name}_{lesson}"
-
-    # بارگذاری نمرات موجود از Supabase
-    scores_response = (
-        supabase.table("scores")
-        .select("*")
-        .eq("آموزگار", full_name)
-        .eq("درس", lesson)
-        .execute()
-    )
-    scores_data = scores_response.data or []
-
-    # ساخت دیتافریم پایه
-    base_df = students_df[["student"]].copy()
-    base_df.set_index("student", inplace=True)
-
-    # افزودن ستون‌های تاریخ از نمرات موجود (شمسی)
-    for rec in scores_data:
-        jalali_date = gregorian_to_jalali(rec["تاریخ"])
-        if jalali_date not in base_df.columns:
-            base_df[jalali_date] = pd.NA
-        base_df.loc[rec["student"], jalali_date] = rec["نمره"]
-
-    # تبدیل به DataFrame قابل ویرایش
-    editable_df = base_df.reset_index().copy()
-
-    # ذخیره اولیه در session state
-    if cache_key not in st.session_state:
-        st.session_state[cache_key] = editable_df
-
-    # افزودن ستون تاریخ جدید با تقویم (میلادی → تبدیل به شمسی)
-    col_add1, col_add2 = st.columns([3, 1])
-    with col_add2:
-        if st.button("افزودن ستون تاریخ جدید", key="add_col_btn"):
-            st.write("تاریخ جدید را انتخاب کنید:")
-            selected_greg = st.date_input(
-                "تاریخ (میلادی، تبدیل به شمسی می‌شود)",
-                value=None,
-                key=f"new_date_input_{lesson}"
-            )
-            if selected_greg:
-                jalali_str = jdatetime.date.fromgregorian(date=selected_greg).strftime("%Y/%m/%d")
-                if jalali_str not in st.session_state[cache_key].columns:
-                    st.session_state[cache_key][jalali_str] = pd.NA
+    # ✏️ ثبت نمره برای دانش‌آموز
+    st.subheader("✏️ ثبت نمره برای دانش‌آموز")
+    if not students_df.empty:
+        selected_student_score = st.selectbox("انتخاب دانش‌آموز:", students_df["student"].tolist(), key="submit_score_student")
+        lesson = st.text_input("نام درس:")
+        score = st.selectbox("نمره (۱ تا ۴):", [1, 2, 3, 4]) 
+        if st.button("ثبت نمره", key="btn_add_score"):
+            if lesson:
+                supabase.table("scores").insert({
+                    "student": selected_student_score,
+                    "درس": lesson,
+                    "نمره": score,
+                    "آموزگار": full_name,
+                    "تاریخ": datetime.date.today().isoformat()
+                }).execute()
+                st.success("✅ نمره ثبت شد.")
                 st.rerun()
+            else:
+                st.warning("لطفاً نام درس را وارد کنید.")
+    else:
+        st.info("برای ثبت نمره ابتدا باید دانش‌آموزی ثبت کنید.")
+        
+    # ----------------------------------------------------
+    # مدیریت نمرات ثبت شده (جدول نمرات حذف شد)
+    # ----------------------------------------------------
+    st.subheader("🛠️ مدیریت نمرات ثبت‌شده")
+    scores_response = supabase.table("scores").select("*").eq("آموزگار", full_name).execute()
+    scores_df = pd.DataFrame(scores_response.data) if scores_response.data else pd.DataFrame()
 
-    # ویرایش جدول مثل اکسل
-    edited_df = st.data_editor(
-        st.session_state[cache_key],
-        use_container_width=True,
-        column_config={
-            "student": st.column_config.TextColumn("دانش‌آموز", disabled=True),
-            **{
-                col: st.column_config.NumberColumn(
-                    col,
-                    min_value=1.0,
-                    max_value=4.0,
-                    step=0.5,
-                    format="%.1f",
-                )
-                for col in st.session_state[cache_key].columns
-                if col != "student"
-            },
-        },
-        key=f"editor_{lesson}",
-    )
+    if not scores_df.empty:
+        selected_row = st.selectbox(
+            "انتخاب نمره برای ویرایش یا حذف (دانش‌آموز - درس - نمره):",
+            scores_df.apply(lambda r: f"{r['student']} - {r['درس']} - {r['نمره']} ({r['id']})", axis=1).tolist(),
+            key="select_edit_delete"
+        )
+        
+        selected_id = int(selected_row.split('(')[-1].strip(')'))
+        selected_score = scores_df.loc[scores_df["id"] == selected_id].iloc[0]
 
-    # ذخیره تغییرات در session state
-    st.session_state[cache_key] = edited_df
+        new_score = st.selectbox("نمره جدید:", [1, 2, 3, 4], index=int(selected_score["نمره"]) - 1, key="edit_new_score")
 
-    # دکمه ذخیره در Supabase
-    if st.button("ذخیره همه نمرات", key="save_all_grades"):
-        saved = 0
-        deleted = 0
-        for _, row in edited_df.iterrows():
-            student = row["student"]
-            for col in edited_df.columns[1:]:
-                score = row[col]
-                greg_date = jalali_to_gregorian(col)
-                if pd.isna(score) or score <= 0:
-                    # حذف نمره خالی
-                    supabase.table("scores").delete()\
-                        .eq("student", student)\
-                        .eq("درس", lesson)\
-                        .eq("تاریخ", greg_date)\
-                        .eq("آموزگار", full_name).execute()
-                    deleted += 1
-                else:
-                    # بررسی وجود رکورد
-                    existing = supabase.table("scores").select("id")\
-                        .eq("student", student)\
-                        .eq("درس", lesson)\
-                        .eq("تاریخ", greg_date)\
-                        .eq("آموزگار", full_name).execute()
-                    if existing.data:
-                        supabase.table("scores").update({"نمره": float(score)})\
-                            .eq("id", existing.data[0]["id"]).execute()
-                    else:
-                        supabase.table("scores").insert({
-                            "student": student,
-                            "درس": lesson,
-                            "نمره": float(score),
-                            "آموزگار": full_name,
-                            "تاریخ": greg_date,
-                        }).execute()
-                    saved += 1
-        st.success(f"{saved} نمره ذخیره شد. {deleted} نمره حذف شد.")
-        st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("ویرایش نمره", key="btn_edit_score"):
+                supabase.table("scores").update({"نمره": new_score}).eq("id", selected_id).execute()
+                st.success("✅ نمره ویرایش شد.")
+                st.rerun()
+        with col2:
+            if st.button("🗑️ حذف نمره", key="btn_delete_score"):
+                supabase.table("scores").delete().eq("id", selected_id).execute()
+                st.success("✅ نمره حذف شد.")
+                st.rerun()
+    else:
+        st.info("هنوز نمره‌ای برای شما ثبت نشده است.")
 
-    # حذف ستون تاریخ
-    if len(edited_df.columns) > 1:
-        col_to_del = st.selectbox("حذف ستون تاریخ:", options=edited_df.columns[1:], key="delete_col")
-        if st.button("حذف ستون", key="btn_delete_col"):
-            greg_date = jalali_to_gregorian(col_to_del)
-            supabase.table("scores").delete()\
-                .eq("درس", lesson)\
-                .eq("تاریخ", greg_date)\
-                .eq("آموزگار", full_name).execute()
-            edited_df.drop(columns=[col_to_del], inplace=True)
-            st.session_state[cache_key] = edited_df
-            st.success("ستون و نمرات آن حذف شد.")
-            st.rerun()
 
 # -------------------------------
 # 2. ماژول گزارش‌های فردی
@@ -1525,14 +1386,6 @@ def app():
 
 if __name__ == "__main__":
     app()
-
-
-
-
-
-
-
-
 
 
 
