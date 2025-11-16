@@ -13,3 +13,5 @@ arabic_reshaper
 jdatetime
 supabase
 weasyprint
+jdatetime
+streamlit-jalali-date-picker
